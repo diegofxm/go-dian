@@ -161,9 +161,8 @@ type PaymentMeans struct {
 
 // TaxTotal representa el total de impuestos
 type TaxTotal struct {
-	TaxAmount      AmountType    `xml:"cbc:TaxAmount"`
-	RoundingAmount AmountType    `xml:"cbc:RoundingAmount,omitempty"`
-	TaxSubtotal    []TaxSubtotal `xml:"cac:TaxSubtotal"`
+	TaxAmount   AmountType    `xml:"cbc:TaxAmount"`
+	TaxSubtotal []TaxSubtotal `xml:"cac:TaxSubtotal"`
 }
 
 // TaxSubtotal representa un subtotal de impuesto
