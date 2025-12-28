@@ -24,7 +24,10 @@ func main() {
 	invoice := dian.NewInvoice("BEC496329154")
 
 	invoice.AccountingSupplierParty = dian.AccountingSupplierParty{
-		AdditionalAccountID: "1",
+		AdditionalAccountID: dian.AdditionalAccountIDType{
+			Value:      "1",
+			SchemeName: "tipos de personas",
+		},
 		Party: dian.Party{
 			IndustryClassificationCode: "6120",
 			PartyIdentification: dian.PartyIdentification{
@@ -36,8 +39,8 @@ func main() {
 					SchemeAgencyName: "CO, DIAN (Dirección de Impuestos y Aduanas Nacionales)",
 				},
 			},
-			PartyName: dian.PartyName{
-				Name: "COLOMBIA TELECOMUNICACIONES S.A. E.S.P. BIC",
+			PartyName: []dian.PartyName{
+				{Name: "COLOMBIA TELECOMUNICACIONES S.A. E.S.P. BIC"},
 			},
 			PartyTaxScheme: dian.PartyTaxScheme{
 				RegistrationName: "COLOMBIA TELECOMUNICACIONES S.A. E.S.P. BIC",
@@ -48,7 +51,10 @@ func main() {
 					SchemeAgencyID:   "195",
 					SchemeAgencyName: "CO, DIAN (Dirección de Impuestos y Aduanas Nacionales)",
 				},
-				TaxLevelCode: "O-13;O-15;O-23",
+				TaxLevelCode: dian.TaxLevelCodeType{
+					Value:    "O-13;O-15;O-23",
+					ListName: "05",
+				},
 				TaxScheme: dian.TaxScheme{
 					ID:   "01",
 					Name: "IVA",
@@ -72,7 +78,10 @@ func main() {
 	}
 
 	invoice.AccountingCustomerParty = dian.AccountingCustomerParty{
-		AdditionalAccountID: "2",
+		AdditionalAccountID: dian.AdditionalAccountIDType{
+			Value:      "2",
+			SchemeName: "tipos de personas",
+		},
 		Party: dian.Party{
 			PartyIdentification: dian.PartyIdentification{
 				ID: dian.IDType{
@@ -83,8 +92,8 @@ func main() {
 					SchemeAgencyName: "CO, DIAN (Dirección de Impuestos y Aduanas Nacionales)",
 				},
 			},
-			PartyName: dian.PartyName{
-				Name: "DIEGO FERNANDO MONTOYA",
+			PartyName: []dian.PartyName{
+				{Name: "DIEGO FERNANDO MONTOYA"},
 			},
 			PartyTaxScheme: dian.PartyTaxScheme{
 				RegistrationName: "DIEGO FERNANDO MONTOYA",
@@ -95,7 +104,10 @@ func main() {
 					SchemeAgencyID:   "195",
 					SchemeAgencyName: "CO, DIAN (Dirección de Impuestos y Aduanas Nacionales)",
 				},
-				TaxLevelCode: "R-99-PN",
+				TaxLevelCode: dian.TaxLevelCodeType{
+					Value:    "R-99-PN",
+					ListName: "04",
+				},
 				TaxScheme: dian.TaxScheme{
 					ID:   "01",
 					Name: "IVA",

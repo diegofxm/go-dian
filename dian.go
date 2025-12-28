@@ -70,7 +70,7 @@ func (c *Client) GenerateInvoiceXML(invoice *Invoice) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error calculando CUFE: %w", err)
 	}
-	invoice.UUID = cufe
+	invoice.UUID.Value = cufe
 
 	// Cargar certificado
 	var cert *x509.Certificate
