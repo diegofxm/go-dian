@@ -17,7 +17,7 @@ type Invoice struct {
 	ProfileID            string `xml:"cbc:ProfileID"`
 	ProfileExecutionID   string `xml:"cbc:ProfileExecutionID"`
 	ID                   string `xml:"cbc:ID"`
-	UUID                 string `xml:"cbc:UUID,attr"`
+	UUID                 string `xml:"cbc:UUID"`
 	IssueDate            string `xml:"cbc:IssueDate"`
 	IssueTime            string `xml:"cbc:IssueTime"`
 	DueDate              string `xml:"cbc:DueDate,omitempty"`
