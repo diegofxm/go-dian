@@ -9,7 +9,6 @@ import (
 // Invoice representa una factura electrónica UBL 2.1
 type Invoice struct {
 	XMLName  xml.Name `xml:"urn:oasis:names:specification:ubl:schema:xsd:Invoice-2 Invoice"`
-	Xmlns    string   `xml:"xmlns,attr"`
 	XmlnsCbc string   `xml:"xmlns:cbc,attr"`
 	XmlnsExt string   `xml:"xmlns:ext,attr"`
 	XmlnsCac string   `xml:"xmlns:cac,attr"`
@@ -242,7 +241,6 @@ type Price struct {
 func NewInvoice(id string) *Invoice {
 	now := time.Now()
 	return &Invoice{
-		Xmlns:                "urn:oasis:names:specification:ubl:schema:xsd:Invoice-2",
 		XmlnsCbc:             "urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2",
 		XmlnsExt:             "urn:oasis:names:specification:ubl:schema:xsd:CommonExtensionComponents-2",
 		XmlnsCac:             "urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2",
