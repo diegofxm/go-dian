@@ -192,12 +192,10 @@ type AmountType struct {
 
 // LegalMonetaryTotal representa el total monetario legal
 type LegalMonetaryTotal struct {
-	LineExtensionAmount  AmountType `xml:"cbc:LineExtensionAmount"`
-	TaxExclusiveAmount   AmountType `xml:"cbc:TaxExclusiveAmount"`
-	TaxInclusiveAmount   AmountType `xml:"cbc:TaxInclusiveAmount"`
-	AllowanceTotalAmount AmountType `xml:"cbc:AllowanceTotalAmount,omitempty"`
-	ChargeTotalAmount    AmountType `xml:"cbc:ChargeTotalAmount,omitempty"`
-	PayableAmount        AmountType `xml:"cbc:PayableAmount"`
+	LineExtensionAmount AmountType `xml:"cbc:LineExtensionAmount"`
+	TaxExclusiveAmount  AmountType `xml:"cbc:TaxExclusiveAmount"`
+	TaxInclusiveAmount  AmountType `xml:"cbc:TaxInclusiveAmount"`
+	PayableAmount       AmountType `xml:"cbc:PayableAmount"`
 }
 
 // InvoiceLine representa una línea de factura
