@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"encoding/xml"
 	"fmt"
+	"strings"
 )
 
 // DianExtensions contiene las extensiones específicas de DIAN
@@ -79,15 +80,15 @@ type ExtensionContent struct {
 func (c *Client) buildInvoiceExtensions(invoice *Invoice) *UBLExtensions {
 	dianExt := DianExtensions{
 		InvoiceControl: InvoiceControl{
-			InvoiceAuthorization: "18764090648904",
+			InvoiceAuthorization: c.InvoiceAuthorization,
 			AuthorizationPeriod: AuthorizationPeriod{
-				StartDate: "2025-03-18",
-				EndDate:   "2027-03-18",
+				StartDate: c.AuthStartDate,
+				EndDate:   c.AuthEndDate,
 			},
 			AuthorizedInvoices: AuthorizedInvoices{
-				Prefix: "BEC",
-				From:   "450000001",
-				To:     "500000000",
+				Prefix: c.InvoicePrefix,
+				From:   c.AuthFrom,
+				To:     c.AuthTo,
 			},
 		},
 		InvoiceSource: InvoiceSource{
@@ -153,7 +154,7 @@ func (c *Client) signInvoiceXML(invoiceXML []byte, cert interface{}, privateKey 
 	// Insertar firma en UBLExtensions
 	invoiceStr := string(invoiceXML)
 
-	extensionsEnd := indexOf(invoiceStr, "</ext:UBLExtensions>")
+	extensionsEnd := strings.Index(invoiceStr, "</ext:UBLExtensions>")
 	if extensionsEnd == -1 {
 		return nil, fmt.Errorf("no se encontró UBLExtensions en la factura")
 	}
@@ -180,13 +181,4 @@ func (c *Client) generateQRCode(invoice *Invoice) string {
 	hash := sha256.Sum256([]byte(data))
 	documentKey := base64.URLEncoding.EncodeToString(hash[:])
 	return fmt.Sprintf("https://catalogo-vpfe.dian.gov.co/document/searchqr?documentkey=%s", documentKey)
-}
-
-func indexOf(s, substr string) int {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return i
-		}
-	}
-	return -1
 }

@@ -7,6 +7,8 @@ import (
 	"encoding/hex"
 	"encoding/xml"
 	"fmt"
+	"regexp"
+	"strings"
 	"time"
 )
 
@@ -17,6 +19,14 @@ type Client struct {
 	Environment Environment
 	SoftwareID  string
 	TestSetID   string
+
+	// Datos de autorización DIAN (específicos por empresa)
+	InvoiceAuthorization string
+	AuthStartDate        string
+	AuthEndDate          string
+	InvoicePrefix        string
+	AuthFrom             string
+	AuthTo               string
 }
 
 // Environment define el ambiente de DIAN
@@ -34,11 +44,17 @@ func NewClient(config Config) (*Client, error) {
 	}
 
 	return &Client{
-		NIT:         config.NIT,
-		Certificate: config.Certificate,
-		Environment: config.Environment,
-		SoftwareID:  config.SoftwareID,
-		TestSetID:   config.TestSetID,
+		NIT:                  config.NIT,
+		Certificate:          config.Certificate,
+		Environment:          config.Environment,
+		SoftwareID:           config.SoftwareID,
+		TestSetID:            config.TestSetID,
+		InvoiceAuthorization: config.InvoiceAuthorization,
+		AuthStartDate:        config.AuthStartDate,
+		AuthEndDate:          config.AuthEndDate,
+		InvoicePrefix:        config.InvoicePrefix,
+		AuthFrom:             config.AuthFrom,
+		AuthTo:               config.AuthTo,
 	}, nil
 }
 
@@ -49,6 +65,14 @@ type Config struct {
 	Environment Environment
 	SoftwareID  string
 	TestSetID   string
+
+	// Datos de autorización DIAN (específicos por empresa)
+	InvoiceAuthorization string // Número de autorización DIAN
+	AuthStartDate        string // Fecha inicio autorización (YYYY-MM-DD)
+	AuthEndDate          string // Fecha fin autorización (YYYY-MM-DD)
+	InvoicePrefix        string // Prefijo de facturación
+	AuthFrom             string // Consecutivo desde
+	AuthTo               string // Consecutivo hasta
 }
 
 // Certificate representa el certificado digital
@@ -59,7 +83,7 @@ type Certificate struct {
 	KeyPEM   string // Clave privada PEM como string (para BD)
 }
 
-// GenerateInvoiceXML genera el XML de Invoice con DianExtensions y firma
+// GenerateInvoiceXML genera el XML de Invoice con DianExtensions (sin firmar)
 func (c *Client) GenerateInvoiceXML(invoice *Invoice) ([]byte, error) {
 	if err := invoice.Validate(); err != nil {
 		return nil, fmt.Errorf("factura inválida: %w", err)
@@ -72,20 +96,6 @@ func (c *Client) GenerateInvoiceXML(invoice *Invoice) ([]byte, error) {
 	}
 	invoice.UUID.Value = cufe
 
-	// Cargar certificado
-	var cert *x509.Certificate
-	var privateKey *rsa.PrivateKey
-
-	if c.Certificate.CertPEM != "" && c.Certificate.KeyPEM != "" {
-		cert, privateKey, err = LoadCertificateFromPEMStrings(c.Certificate.CertPEM, c.Certificate.KeyPEM)
-	} else {
-		cert, privateKey, err = LoadCertificate(c.Certificate.Path, c.Certificate.Password)
-	}
-
-	if err != nil {
-		return nil, fmt.Errorf("error cargando certificado: %w", err)
-	}
-
 	// Agregar DianExtensions a la factura
 	invoice.UBLExtensions = c.buildInvoiceExtensions(invoice)
 
@@ -95,14 +105,8 @@ func (c *Client) GenerateInvoiceXML(invoice *Invoice) ([]byte, error) {
 		return nil, fmt.Errorf("error generando XML de factura: %w", err)
 	}
 
-	// Firmar la factura e insertar firma en UBLExtensions
-	signedInvoiceXML, err := c.signInvoiceXML(invoiceXML, cert, privateKey)
-	if err != nil {
-		return nil, fmt.Errorf("error firmando factura: %w", err)
-	}
-
 	// Agregar declaración XML
-	result := []byte(xml.Header + string(signedInvoiceXML))
+	result := []byte(xml.Header + string(invoiceXML))
 	return result, nil
 }
 
@@ -128,19 +132,19 @@ func (c *Client) CalculateCUFE(invoice *Invoice) (string, error) {
 
 // SendInvoice envía la factura a DIAN
 func (c *Client) SendInvoice(invoice *Invoice) (*InvoiceResponse, error) {
-	// 1. Generar XML
+	// 1. Generar XML sin firmar
 	xmlData, err := c.GenerateInvoiceXML(invoice)
 	if err != nil {
 		return nil, err
 	}
 
-	// 2. Firmar XML (implementar después)
+	// 2. Firmar XML
 	signedXML, err := c.SignXML(xmlData)
 	if err != nil {
 		return nil, fmt.Errorf("error firmando XML: %w", err)
 	}
 
-	// 3. Enviar a DIAN vía SOAP (implementar después)
+	// 3. Enviar a DIAN vía SOAP
 	response, err := c.sendSOAP(signedXML)
 	if err != nil {
 		return nil, fmt.Errorf("error enviando a DIAN: %w", err)
@@ -149,18 +153,27 @@ func (c *Client) SendInvoice(invoice *Invoice) (*InvoiceResponse, error) {
 	return response, nil
 }
 
-// SignXML firma el XML con el certificado digital
+// SignXML firma cualquier XML con el certificado digital (método genérico reutilizable)
 func (c *Client) SignXML(xmlData []byte) ([]byte, error) {
-	if c.Certificate.Path == "" {
+	// Cargar certificado (soporta PEM strings o archivo P12/PEM)
+	var cert *x509.Certificate
+	var privateKey *rsa.PrivateKey
+	var err error
+
+	if c.Certificate.CertPEM != "" && c.Certificate.KeyPEM != "" {
+		cert, privateKey, err = LoadCertificateFromPEMStrings(c.Certificate.CertPEM, c.Certificate.KeyPEM)
+	} else if c.Certificate.Path != "" {
+		cert, privateKey, err = LoadCertificate(c.Certificate.Path, c.Certificate.Password)
+	} else {
 		return nil, fmt.Errorf("certificado no configurado")
 	}
 
-	cert, privateKey, err := LoadCertificate(c.Certificate.Path, c.Certificate.Password)
 	if err != nil {
 		return nil, fmt.Errorf("error cargando certificado: %w", err)
 	}
 
-	signedXML, err := SignXMLDocument(xmlData, cert, privateKey)
+	// Firmar XML e insertar firma en UBLExtensions
+	signedXML, err := c.signInvoiceXML(xmlData, cert, privateKey)
 	if err != nil {
 		return nil, fmt.Errorf("error firmando XML: %w", err)
 	}
@@ -195,4 +208,21 @@ type InvoiceResponse struct {
 	CUFE         string
 	Errors       []string
 	ResponseDate time.Time
+}
+
+// ValidateNIT valida el formato de un NIT colombiano
+func ValidateNIT(nit string) error {
+	nit = strings.ReplaceAll(nit, ".", "")
+	nit = strings.ReplaceAll(nit, "-", "")
+
+	if len(nit) < 9 || len(nit) > 10 {
+		return fmt.Errorf("NIT debe tener entre 9 y 10 dígitos")
+	}
+
+	matched, _ := regexp.MatchString(`^\d+$`, nit)
+	if !matched {
+		return fmt.Errorf("NIT debe contener solo números")
+	}
+
+	return nil
 }

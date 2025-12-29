@@ -61,7 +61,7 @@ func NewSOAPClient(environment Environment) *SOAPClient {
 // SendInvoiceToDAIN envía una factura firmada a DIAN
 func (s *SOAPClient) SendInvoiceToDAIN(fileName string, signedXML []byte) (*DianResponse, error) {
 	// Codificar XML en base64
-	contentFile := encodeBase64(signedXML)
+	contentFile := base64.StdEncoding.EncodeToString(signedXML)
 
 	// Crear petición SOAP
 	request := SendBillSync{
@@ -176,26 +176,11 @@ func parseDianResponse(responseXML []byte) (*DianResponse, error) {
 	}, nil
 }
 
-// GetStatus consulta el estado de un documento en DIAN
-func (s *SOAPClient) GetStatus(trackingID string) (*DianResponse, error) {
-	// TODO: Implementar consulta de estado
-	return &DianResponse{
-		Success:       true,
-		StatusMessage: "Consulta de estado no implementada",
-		ResponseDate:  time.Now(),
-	}, nil
-}
-
 // SendTestSet envía un set de pruebas a DIAN (habilitación)
 func (s *SOAPClient) SendTestSet(testSetID string, signedXML []byte) (*DianResponse, error) {
 	// Similar a SendInvoiceToDAIN pero con endpoint de habilitación
 	fileName := fmt.Sprintf("test_%s.xml", testSetID)
 	return s.SendInvoiceToDAIN(fileName, signedXML)
-}
-
-// encodeBase64 codifica datos en base64
-func encodeBase64(data []byte) string {
-	return base64.StdEncoding.EncodeToString(data)
 }
 
 // ValidateConnection valida la conexión con DIAN

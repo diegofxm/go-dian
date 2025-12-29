@@ -429,29 +429,22 @@ func generateID() string {
 	return fmt.Sprintf("xmldsig-%d", time.Now().UnixNano())
 }
 
-// VerifySignature verifica una firma XMLDSig (para testing)
-func VerifySignature(signedXML []byte, cert *x509.Certificate) error {
-	// TODO: Implementar verificación de firma
-	// Por ahora retorna nil (asume válido)
-	return nil
+// CertificateInfo contiene información del certificado digital
+type CertificateInfo struct {
+	Subject      string
+	Issuer       string
+	NotBefore    time.Time
+	NotAfter     time.Time
+	SerialNumber string
 }
 
-// GetCertificateInfo obtiene información del certificado
-func GetCertificateInfo(cert *x509.Certificate) map[string]string {
-	return map[string]string{
-		"Subject":      cert.Subject.String(),
-		"Issuer":       cert.Issuer.String(),
-		"NotBefore":    cert.NotBefore.String(),
-		"NotAfter":     cert.NotAfter.String(),
-		"SerialNumber": cert.SerialNumber.String(),
+// GetCertificateInfo obtiene información del certificado de forma tipada
+func GetCertificateInfo(cert *x509.Certificate) CertificateInfo {
+	return CertificateInfo{
+		Subject:      cert.Subject.String(),
+		Issuer:       cert.Issuer.String(),
+		NotBefore:    cert.NotBefore,
+		NotAfter:     cert.NotAfter,
+		SerialNumber: cert.SerialNumber.String(),
 	}
-}
-
-// EncodeCertificatePEM codifica un certificado en formato PEM
-func EncodeCertificatePEM(cert *x509.Certificate) string {
-	certPEM := pem.EncodeToMemory(&pem.Block{
-		Type:  "CERTIFICATE",
-		Bytes: cert.Raw,
-	})
-	return string(certPEM)
 }
