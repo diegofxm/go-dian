@@ -37,7 +37,8 @@ type Invoice struct {
 	TaxRepresentativeParty  *TaxRepresentativeParty `xml:"cac:TaxRepresentativeParty,omitempty"`
 	Delivery                *Delivery               `xml:"cac:Delivery,omitempty"`
 	DeliveryTerms           *DeliveryTerms          `xml:"cac:DeliveryTerms,omitempty"`
-	PaymentMeans            *PaymentMeans           `xml:"cac:PaymentMeans,omitempty"`
+	PaymentMeans            []PaymentMeans          `xml:"cac:PaymentMeans,omitempty"`
+	PaymentTerms            []PaymentTerms          `xml:"cac:PaymentTerms,omitempty"`
 	PrepaidPayment          []PrepaidPayment        `xml:"cac:PrepaidPayment,omitempty"`
 	TaxTotal                []TaxTotal              `xml:"cac:TaxTotal"`
 	LegalMonetaryTotal      LegalMonetaryTotal      `xml:"cac:LegalMonetaryTotal"`
@@ -154,9 +155,24 @@ type DeliveryParty struct {
 
 // DeliveryTerms representa los términos de entrega
 type DeliveryTerms struct {
-	SpecialTerms               string `xml:"cbc:SpecialTerms,omitempty"`
-	LossRiskResponsibilityCode string `xml:"cbc:LossRiskResponsibilityCode,omitempty"`
-	LossRisk                   string `xml:"cbc:LossRisk,omitempty"`
+	ID                     string            `xml:"cbc:ID,omitempty"`
+	SpecialTerms           string            `xml:"cbc:SpecialTerms,omitempty"`
+	LossRiskResponsibility string            `xml:"cbc:LossRiskResponsibilityCode,omitempty"`
+	DeliveryLocation       *DeliveryLocation `xml:"cac:DeliveryLocation,omitempty"`
+}
+
+// PaymentMeans representa el medio de pago
+type PaymentMeans struct {
+	ID               string `xml:"cbc:ID"`
+	PaymentMeansCode string `xml:"cbc:PaymentMeansCode"`
+	PaymentDueDate   string `xml:"cbc:PaymentDueDate,omitempty"`
+}
+
+// PaymentTerms representa las condiciones de pago
+type PaymentTerms struct {
+	PaymentMeansID string `xml:"cbc:PaymentMeansID,omitempty"`
+	PaymentDueDate string `xml:"cbc:PaymentDueDate,omitempty"`
+	Note           string `xml:"cbc:Note,omitempty"`
 }
 
 // PrepaidPayment representa un pago anticipado
@@ -247,12 +263,42 @@ type IDType struct {
 	SchemeAgencyName string `xml:"schemeAgencyName,attr,omitempty"`
 }
 
-// PaymentMeans representa los medios de pago
-type PaymentMeans struct {
-	ID               string `xml:"cbc:ID"`
-	PaymentMeansCode string `xml:"cbc:PaymentMeansCode"`
-	PaymentDueDate   string `xml:"cbc:PaymentDueDate,omitempty"`
-	PaymentID        string `xml:"cbc:PaymentID,omitempty"`
+// AmountType representa un monto con moneda
+type AmountType struct {
+	Value      float64 `xml:"-"`
+	CurrencyID string  `xml:"currencyID,attr"`
+}
+
+// MarshalXML implementa xml.Marshaler para evitar notación científica
+func (a AmountType) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
+	type Alias AmountType
+	aux := struct {
+		*Alias
+		Value string `xml:",chardata"`
+	}{
+		Alias: (*Alias)(&a),
+		Value: fmt.Sprintf("%.2f", a.Value),
+	}
+	return e.EncodeElement(aux, start)
+}
+
+// Quantity representa una cantidad con unidad de medida
+type Quantity struct {
+	Value    float64 `xml:"-"`
+	UnitCode string  `xml:"unitCode,attr"`
+}
+
+// MarshalXML implementa xml.Marshaler para evitar notación científica
+func (q Quantity) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
+	type Alias Quantity
+	aux := struct {
+		*Alias
+		Value string `xml:",chardata"`
+	}{
+		Alias: (*Alias)(&q),
+		Value: fmt.Sprintf("%.4f", q.Value),
+	}
+	return e.EncodeElement(aux, start)
 }
 
 // TaxTotal representa el total de impuestos
@@ -278,12 +324,6 @@ type TaxCategory struct {
 type TaxScheme struct {
 	ID   string `xml:"cbc:ID"`
 	Name string `xml:"cbc:Name"`
-}
-
-// AmountType representa un monto con moneda
-type AmountType struct {
-	Value      float64 `xml:",chardata"`
-	CurrencyID string  `xml:"currencyID,attr"`
 }
 
 // LegalMonetaryTotal representa el total monetario legal
@@ -348,12 +388,6 @@ type AlternativeConditionPrice struct {
 	PriceAmount   AmountType `xml:"cbc:PriceAmount"`
 	PriceTypeCode string     `xml:"cbc:PriceTypeCode,omitempty"`
 	PriceType     string     `xml:"cbc:PriceType,omitempty"`
-}
-
-// Quantity representa una cantidad con unidad
-type Quantity struct {
-	Value    float64 `xml:",chardata"`
-	UnitCode string  `xml:"unitCode,attr"`
 }
 
 // Item representa un item/producto

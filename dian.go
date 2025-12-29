@@ -2,7 +2,7 @@ package dian
 
 import (
 	"crypto/rsa"
-	"crypto/sha256"
+	"crypto/sha512"
 	"crypto/x509"
 	"encoding/hex"
 	"encoding/xml"
@@ -122,7 +122,7 @@ func (c *Client) CalculateCUFE(invoice *Invoice) (string, error) {
 		string(c.Environment),
 	)
 
-	hash := sha256.Sum256([]byte(data))
+	hash := sha512.Sum384([]byte(data))
 	return hex.EncodeToString(hash[:]), nil
 }
 

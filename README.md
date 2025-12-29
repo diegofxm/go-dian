@@ -290,15 +290,17 @@ go-dian/
 
 ## Estado Actual
 
-**Versión:** 1.0.0 (MVP)
+**Versión:** 0.1.10 (Fixes Críticos DIAN)
 
 **Funcionalidad Core Completa:**
 - ✅ Facturación electrónica básica
 - ✅ Generación de XML UBL 2.1
 - ✅ Firma digital XMLDSig
 - ✅ Envío a DIAN vía SOAP
-- ✅ Cálculo de CUFE
+- ✅ Cálculo de CUFE con SHA384 (CORREGIDO v0.1.10)
 - ✅ Extensiones DIAN
+- ✅ Montos sin notación científica (CORREGIDO v0.1.10)
+- ✅ PaymentMeans y PaymentTerms (AGREGADO v0.1.10)
 
 **Lo que NO incluye (pero está en roadmap):**
 - ❌ Notas crédito/débito (v1.1)
@@ -307,6 +309,31 @@ go-dian/
 - ❌ Validaciones avanzadas exhaustivas (v1.4)
 - ❌ Retry logic automático en SOAP (v1.5)
 - ❌ Nómina electrónica (v2.0)
+
+## 📝 Changelog
+
+### v0.1.10 (2025-12-28) - Fixes Críticos DIAN
+
+**🔴 CRÍTICO - CUFE con SHA384:**
+- ❌ **Antes:** Usaba SHA256 para calcular CUFE
+- ✅ **Ahora:** Usa SHA384 según requerimientos oficiales DIAN
+- 📁 **Archivo:** `dian.go` línea 125
+- 🔧 **Cambio:** `sha256.Sum256` → `sha512.Sum384`
+
+**🔴 CRÍTICO - Notación Científica Eliminada:**
+- ❌ **Antes:** Montos se serializaban como `2.2895e+06`
+- ✅ **Ahora:** Montos se serializan como `2289500.00`
+- 📁 **Archivo:** `models.go` - `AmountType` y `Quantity`
+- 🔧 **Cambio:** Implementado custom `MarshalXML` con `fmt.Sprintf("%.2f")`
+
+**⚠️ IMPORTANTE - PaymentMeans y PaymentTerms:**
+- ✅ **Agregado:** Structs `PaymentMeans` y `PaymentTerms`
+- 📁 **Archivo:** `models.go` líneas 164-176
+- 🎯 **Uso:** Permite especificar medio de pago y condiciones
+
+**Impacto:** Estas correcciones son CRÍTICAS para que DIAN acepte las facturas. Sin ellas, las facturas serán rechazadas automáticamente.
+
+---
 
 ## Licencia
 
