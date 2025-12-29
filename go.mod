@@ -2,10 +2,11 @@ module github.com/diegofxm/go-dian
 
 go 1.23
 
-// v0.1.10 - Fixes críticos DIAN
-// - CUFE con SHA384 (antes SHA256)
-// - Eliminada notación científica en montos
-// - Agregados PaymentMeans y PaymentTerms5.1
+// v0.2.0 - Refactorización modular
+// - Estructura modular profesional (invoice/, common/, signature/, soap/, extensions/)
+// - Separación de responsabilidades
+// - Código organizado por dominio
+// - Preparado para extensión (creditnote, debitnote, etc.)
 
 require software.sslmate.com/src/go-pkcs12 v0.7.0
 

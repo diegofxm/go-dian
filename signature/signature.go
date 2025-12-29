@@ -1,4 +1,4 @@
-package dian
+package signature
 
 import (
 	"crypto"
@@ -18,7 +18,6 @@ import (
 	"software.sslmate.com/src/go-pkcs12"
 )
 
-// Signature representa la estructura de firma XMLDSig
 type Signature struct {
 	XMLName        xml.Name       `xml:"http://www.w3.org/2000/09/xmldsig# Signature"`
 	ID             string         `xml:"Id,attr"`
@@ -136,14 +135,11 @@ type SigPolicyHash struct {
 	DigestValue  string       `xml:"http://www.w3.org/2000/09/xmldsig# DigestValue"`
 }
 
-// LoadCertificate carga un certificado (P12 o PEM) automáticamente
 func LoadCertificate(path, password string) (*x509.Certificate, *rsa.PrivateKey, error) {
-	// Detectar tipo de archivo
 	if strings.HasSuffix(strings.ToLower(path), ".pem") {
 		return loadFromPEM(path)
 	}
 
-	// Si es P12, intentar decodificar directamente
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, nil, fmt.Errorf("error leyendo certificado: %w", err)
@@ -151,7 +147,6 @@ func LoadCertificate(path, password string) (*x509.Certificate, *rsa.PrivateKey,
 
 	privateKey, certificate, err := pkcs12.Decode(data, password)
 	if err != nil {
-		// Si falla, convertir P12 a PEM usando OpenSSL y reintentar
 		return convertP12ToPEMAndLoad(path, password)
 	}
 
@@ -163,7 +158,6 @@ func LoadCertificate(path, password string) (*x509.Certificate, *rsa.PrivateKey,
 	return certificate, rsaKey, nil
 }
 
-// loadFromPEM carga certificado y clave desde archivo PEM
 func loadFromPEM(pemPath string) (*x509.Certificate, *rsa.PrivateKey, error) {
 	pemData, err := os.ReadFile(pemPath)
 	if err != nil {
@@ -173,7 +167,6 @@ func loadFromPEM(pemPath string) (*x509.Certificate, *rsa.PrivateKey, error) {
 	var cert *x509.Certificate
 	var key *rsa.PrivateKey
 
-	// Decodificar todos los bloques PEM
 	rest := pemData
 	for {
 		block, remaining := pem.Decode(rest)
@@ -210,111 +203,28 @@ func loadFromPEM(pemPath string) (*x509.Certificate, *rsa.PrivateKey, error) {
 		}
 	}
 
-	if cert == nil {
-		return nil, nil, fmt.Errorf("certificado no encontrado en archivo PEM")
-	}
-	if key == nil {
-		return nil, nil, fmt.Errorf("clave privada no encontrada en archivo PEM")
+	if cert == nil || key == nil {
+		return nil, nil, fmt.Errorf("certificado o clave privada no encontrados en PEM")
 	}
 
 	return cert, key, nil
 }
 
-// LoadCertificateFromPEMStrings carga certificado desde strings PEM (para BD)
-func LoadCertificateFromPEMStrings(certPEM, keyPEM string) (*x509.Certificate, *rsa.PrivateKey, error) {
-	var cert *x509.Certificate
-	var key *rsa.PrivateKey
-
-	// Parsear certificado
-	block, _ := pem.Decode([]byte(certPEM))
-	if block == nil {
-		return nil, nil, fmt.Errorf("error decodificando certificado PEM")
-	}
-
-	var err error
-	cert, err = x509.ParseCertificate(block.Bytes)
-	if err != nil {
-		return nil, nil, fmt.Errorf("error parseando certificado: %w", err)
-	}
-
-	// Parsear clave privada
-	keyBlock, _ := pem.Decode([]byte(keyPEM))
-	if keyBlock == nil {
-		return nil, nil, fmt.Errorf("error decodificando clave privada PEM")
-	}
-
-	parsedKey, err := x509.ParsePKCS8PrivateKey(keyBlock.Bytes)
-	if err != nil {
-		parsedKey, err = x509.ParsePKCS1PrivateKey(keyBlock.Bytes)
-		if err != nil {
-			return nil, nil, fmt.Errorf("error parseando clave privada: %w", err)
-		}
-	}
-
-	var ok bool
-	key, ok = parsedKey.(*rsa.PrivateKey)
-	if !ok {
-		return nil, nil, fmt.Errorf("la clave privada no es RSA")
-	}
-
-	return cert, key, nil
-}
-
-// convertP12ToPEMAndLoad convierte P12 a PEM usando OpenSSL y lo carga
 func convertP12ToPEMAndLoad(p12Path, password string) (*x509.Certificate, *rsa.PrivateKey, error) {
-	// Generar nombre del archivo PEM (mismo nombre que P12 pero con extensión .pem)
-	pemPath := p12Path
-	pemPath = strings.TrimSuffix(pemPath, ".p12")
-	pemPath = strings.TrimSuffix(pemPath, ".pfx")
-	pemPath = pemPath + ".pem"
+	pemPath := strings.TrimSuffix(p12Path, ".p12") + ".pem"
 
-	// Si ya existe un PEM, verificar si es del mismo P12 (comparar fecha de modificación)
-	p12Info, err := os.Stat(p12Path)
-	if err != nil {
-		return nil, nil, fmt.Errorf("error obteniendo info del P12: %w", err)
+	cmd := exec.Command("openssl", "pkcs12", "-in", p12Path, "-out", pemPath, "-nodes", "-passin", "pass:"+password)
+	if err := cmd.Run(); err != nil {
+		return nil, nil, fmt.Errorf("error convirtiendo P12 a PEM: %w", err)
 	}
 
-	pemInfo, err := os.Stat(pemPath)
-	if err == nil {
-		// PEM existe, verificar si es más antiguo que el P12
-		if pemInfo.ModTime().Before(p12Info.ModTime()) {
-			// P12 es más nuevo, eliminar PEM antiguo
-			os.Remove(pemPath)
-		} else {
-			// PEM es actual, usarlo directamente
-			return loadFromPEM(pemPath)
-		}
-	}
-
-	// Ejecutar OpenSSL para convertir P12 a PEM (con -legacy para soportar RC2-40-CBC)
-	cmd := exec.Command("openssl", "pkcs12", "-in", p12Path, "-out", pemPath, "-nodes", "-legacy", "-passin", "pass:"+password)
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return nil, nil, fmt.Errorf("error convirtiendo P12 a PEM con OpenSSL: %w\nOutput: %s", err, string(output))
-	}
-
-	// Cargar el archivo PEM convertido
-	cert, key, err := loadFromPEM(pemPath)
-	if err != nil {
-		return nil, nil, fmt.Errorf("error cargando PEM convertido: %w", err)
-	}
-
-	return cert, key, nil
+	return loadFromPEM(pemPath)
 }
 
-// SignXMLDocument firma un documento XML con XMLDSig
 func SignXMLDocument(xmlData []byte, cert *x509.Certificate, privateKey *rsa.PrivateKey) ([]byte, error) {
-	signatureID := generateID()
+	hash := sha256.Sum256(xmlData)
+	digestValue := base64.StdEncoding.EncodeToString(hash[:])
 
-	// Calcular digest del documento
-	documentHash := sha256.Sum256(xmlData)
-	documentDigest := base64.StdEncoding.EncodeToString(documentHash[:])
-
-	// Calcular digest del certificado
-	certHash := sha256.Sum256(cert.Raw)
-	certDigest := base64.StdEncoding.EncodeToString(certHash[:])
-
-	// Crear SignedInfo
 	signedInfo := SignedInfo{
 		CanonicalizationMethod: CanonicalizationMethod{
 			Algorithm: "http://www.w3.org/TR/2001/REC-xml-c14n-20010315",
@@ -324,7 +234,6 @@ func SignXMLDocument(xmlData []byte, cert *x509.Certificate, privateKey *rsa.Pri
 		},
 		Reference: []Reference{
 			{
-				ID:  signatureID + "-ref0",
 				URI: "",
 				Transforms: &Transforms{
 					Transform: []Transform{
@@ -334,50 +243,42 @@ func SignXMLDocument(xmlData []byte, cert *x509.Certificate, privateKey *rsa.Pri
 				DigestMethod: DigestMethod{
 					Algorithm: "http://www.w3.org/2001/04/xmlenc#sha256",
 				},
-				DigestValue: documentDigest,
+				DigestValue: digestValue,
 			},
 		},
 	}
 
-	// Serializar SignedInfo
 	signedInfoXML, err := xml.Marshal(signedInfo)
 	if err != nil {
 		return nil, fmt.Errorf("error serializando SignedInfo: %w", err)
 	}
 
-	// Firmar SignedInfo
 	signedInfoHash := sha256.Sum256(signedInfoXML)
-	signatureBytes, err := rsa.SignPKCS1v15(rand.Reader, privateKey, crypto.SHA256, signedInfoHash[:])
+	signature, err := rsa.SignPKCS1v15(rand.Reader, privateKey, crypto.SHA256, signedInfoHash[:])
 	if err != nil {
-		return nil, fmt.Errorf("error firmando documento: %w", err)
+		return nil, fmt.Errorf("error firmando: %w", err)
 	}
 
-	signatureValue := base64.StdEncoding.EncodeToString(signatureBytes)
+	certDER := base64.StdEncoding.EncodeToString(cert.Raw)
 
-	// Codificar certificado en base64
-	certPEM := base64.StdEncoding.EncodeToString(cert.Raw)
-
-	// Crear estructura de firma completa
-	signature := Signature{
-		ID:         signatureID,
+	sig := Signature{
+		ID:         "xmldsig-signature",
 		SignedInfo: signedInfo,
 		SignatureValue: SignatureValue{
-			ID:    signatureID + "-sigvalue",
-			Value: signatureValue,
+			Value: base64.StdEncoding.EncodeToString(signature),
 		},
 		KeyInfo: KeyInfo{
-			ID: signatureID + "-keyinfo",
 			X509Data: X509Data{
-				X509Certificate: certPEM,
+				X509Certificate: certDER,
 			},
 		},
 		Object: &Object{
 			QualifyingProperties: QualifyingProperties{
-				Target: "#" + signatureID,
+				Target: "#xmldsig-signature",
 				SignedProperties: SignedProperties{
-					ID: signatureID + "-signedprops",
+					ID: "xmldsig-signedproperties",
 					SignedSignatureProperties: SignedSignatureProperties{
-						SigningTime: time.Now().Format("2006-01-02T15:04:05-07:00"),
+						SigningTime: time.Now().Format(time.RFC3339),
 						SigningCertificate: SigningCertificate{
 							Cert: []Cert{
 								{
@@ -385,11 +286,11 @@ func SignXMLDocument(xmlData []byte, cert *x509.Certificate, privateKey *rsa.Pri
 										DigestMethod: DigestMethod{
 											Algorithm: "http://www.w3.org/2001/04/xmlenc#sha256",
 										},
-										DigestValue: certDigest,
+										DigestValue: base64.StdEncoding.EncodeToString(hash[:]),
 									},
 									IssuerSerial: IssuerSerial{
 										X509IssuerName:   cert.Issuer.String(),
-										X509SerialNumber: "0",
+										X509SerialNumber: cert.SerialNumber.String(),
 									},
 								},
 							},
@@ -397,8 +298,7 @@ func SignXMLDocument(xmlData []byte, cert *x509.Certificate, privateKey *rsa.Pri
 						SignaturePolicyIdentifier: SignaturePolicyIdentifier{
 							SignaturePolicyId: SignaturePolicyId{
 								SigPolicyId: SigPolicyId{
-									Identifier:  "https://facturaelectronica.dian.gov.co/politicadefirma/v2/politicadefirmav2.pdf",
-									Description: "Política de firma para facturas electrónicas de la República de Colombia.",
+									Identifier: "https://facturaelectronica.dian.gov.co/politicadefirma/v2/politicadefirmav2.pdf",
 								},
 								SigPolicyHash: SigPolicyHash{
 									DigestMethod: DigestMethod{
@@ -414,37 +314,5 @@ func SignXMLDocument(xmlData []byte, cert *x509.Certificate, privateKey *rsa.Pri
 		},
 	}
 
-	// Serializar firma
-	signatureXML, err := xml.MarshalIndent(signature, "  ", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("error serializando firma: %w", err)
-	}
-
-	// Retornar SOLO la firma XMLDSig (no el documento completo)
-	return signatureXML, nil
-}
-
-// generateID genera un ID único para la firma
-func generateID() string {
-	return fmt.Sprintf("xmldsig-%d", time.Now().UnixNano())
-}
-
-// CertificateInfo contiene información del certificado digital
-type CertificateInfo struct {
-	Subject      string
-	Issuer       string
-	NotBefore    time.Time
-	NotAfter     time.Time
-	SerialNumber string
-}
-
-// GetCertificateInfo obtiene información del certificado de forma tipada
-func GetCertificateInfo(cert *x509.Certificate) CertificateInfo {
-	return CertificateInfo{
-		Subject:      cert.Subject.String(),
-		Issuer:       cert.Issuer.String(),
-		NotBefore:    cert.NotBefore,
-		NotAfter:     cert.NotAfter,
-		SerialNumber: cert.SerialNumber.String(),
-	}
+	return xml.MarshalIndent(sig, "      ", "  ")
 }
