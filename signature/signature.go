@@ -229,9 +229,19 @@ func parsePEMData(pemData []byte) (*x509.Certificate, *rsa.PrivateKey, error) {
 func convertP12ToPEMAndLoad(p12Path, password string) (*x509.Certificate, *rsa.PrivateKey, error) {
 	pemPath := strings.TrimSuffix(p12Path, ".p12") + ".pem"
 
-	cmd := exec.Command("openssl", "pkcs12", "-in", p12Path, "-out", pemPath, "-nodes", "-passin", "pass:"+password)
-	if err := cmd.Run(); err != nil {
-		return nil, nil, fmt.Errorf("error convirtiendo P12 a PEM: %w", err)
+	// Exportar certificado y clave privada en un solo archivo PEM
+	// -clcerts: solo certificados de cliente
+	// -nokeys: no exportar claves (para el primer comando)
+	// Usamos -nodes para no encriptar la clave privada
+	cmd := exec.Command("openssl", "pkcs12", "-in", p12Path, "-out", pemPath, "-nodes", "-passin", "pass:"+password, "-legacy")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		// Intentar sin -legacy para versiones antiguas de OpenSSL
+		cmd = exec.Command("openssl", "pkcs12", "-in", p12Path, "-out", pemPath, "-nodes", "-passin", "pass:"+password)
+		output, err = cmd.CombinedOutput()
+		if err != nil {
+			return nil, nil, fmt.Errorf("error convirtiendo P12 a PEM: %w (output: %s)", err, string(output))
+		}
 	}
 
 	return loadFromPEM(pemPath)
