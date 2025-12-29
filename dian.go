@@ -37,6 +37,11 @@ func NewClient(config Config) (*Client, error) {
 		if err != nil {
 			return nil, fmt.Errorf("error cargando certificado: %w", err)
 		}
+	} else if config.Certificate.CertPEM != "" && config.Certificate.KeyPEM != "" {
+		certManager, err = signature.NewCertManagerFromPEM(config.Certificate.CertPEM, config.Certificate.KeyPEM)
+		if err != nil {
+			return nil, fmt.Errorf("error cargando certificado PEM: %w", err)
+		}
 	}
 
 	var soapEnv soap.Environment

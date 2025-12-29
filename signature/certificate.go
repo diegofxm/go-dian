@@ -23,6 +23,19 @@ func NewCertificateManager(certPath, password string) (*CertificateManager, erro
 	}, nil
 }
 
+// NewCertManagerFromPEM crea un CertificateManager desde strings PEM
+func NewCertManagerFromPEM(certPEM, keyPEM string) (*CertificateManager, error) {
+	cert, key, err := LoadPEMStrings(certPEM, keyPEM)
+	if err != nil {
+		return nil, fmt.Errorf("error cargando certificado PEM: %w", err)
+	}
+
+	return &CertificateManager{
+		Certificate: cert,
+		PrivateKey:  key,
+	}, nil
+}
+
 func (cm *CertificateManager) GetCertificate() *x509.Certificate {
 	return cm.Certificate
 }

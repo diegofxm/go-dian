@@ -164,8 +164,24 @@ func loadFromPEM(pemPath string) (*x509.Certificate, *rsa.PrivateKey, error) {
 		return nil, nil, fmt.Errorf("error leyendo archivo PEM: %w", err)
 	}
 
+	return parsePEMData(pemData)
+}
+
+// LoadPEMStrings carga certificado y clave privada desde strings PEM
+func LoadPEMStrings(certPEM, keyPEM string) (*x509.Certificate, *rsa.PrivateKey, error) {
+	if certPEM == "" || keyPEM == "" {
+		return nil, nil, fmt.Errorf("certificado y clave PEM son requeridos")
+	}
+
+	// Combinar certificado y clave en un solo string para parsear
+	pemData := []byte(certPEM + "\n" + keyPEM)
+	return parsePEMData(pemData)
+}
+
+func parsePEMData(pemData []byte) (*x509.Certificate, *rsa.PrivateKey, error) {
 	var cert *x509.Certificate
 	var key *rsa.PrivateKey
+	var err error
 
 	rest := pemData
 	for {
