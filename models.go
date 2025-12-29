@@ -417,32 +417,23 @@ func (i *Invoice) AddLine(line InvoiceLine) {
 
 // CalculateTotals calcula los totales de la factura
 func (i *Invoice) CalculateTotals() {
-	var lineExtension, taxExclusive, taxInclusive, totalTax float64
+	var lineExtension, taxExclusive, taxInclusive float64
 
 	for _, line := range i.InvoiceLines {
 		lineExtension += line.LineExtensionAmount.Value
 
 		for _, tax := range line.TaxTotal {
-			totalTax += tax.TaxAmount.Value
+			taxInclusive += tax.TaxAmount.Value
 		}
 	}
 
 	taxExclusive = lineExtension
-	taxInclusive = lineExtension + totalTax
+	taxInclusive = lineExtension + taxInclusive
 
 	i.LegalMonetaryTotal = LegalMonetaryTotal{
 		LineExtensionAmount: AmountType{Value: lineExtension, CurrencyID: "COP"},
 		TaxExclusiveAmount:  AmountType{Value: taxExclusive, CurrencyID: "COP"},
 		TaxInclusiveAmount:  AmountType{Value: taxInclusive, CurrencyID: "COP"},
 		PayableAmount:       AmountType{Value: taxInclusive, CurrencyID: "COP"},
-	}
-
-	// Agregar TaxTotal a nivel de factura para CUFE
-	if totalTax > 0 {
-		i.TaxTotal = []TaxTotal{
-			{
-				TaxAmount: AmountType{Value: totalTax, CurrencyID: "COP"},
-			},
-		}
 	}
 }
