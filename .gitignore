@@ -17,7 +17,6 @@ go.work
 # Certificates
 *.p12
 *.pfx
-*.pem
 *.key
 
 # IDE
@@ -31,5 +30,6 @@ go.work
 .DS_Store
 Thumbs.db
 
-# github
-noupload/
+# Examples certificates
+examples/certificates/*.pem
+!examples/certificates/.gitkeep

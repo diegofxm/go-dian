@@ -1,6 +1,6 @@
 package invoice
 
-import "github.com/diegofxm/go-dian/common"
+import "github.com/diegofxm/go-dian/pkg/common"
 
 // InvoiceLine representa una línea de factura
 type InvoiceLine struct {

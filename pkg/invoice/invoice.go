@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/diegofxm/go-dian/common"
+	"github.com/diegofxm/go-dian/pkg/common"
 )
 
 type Invoice struct {

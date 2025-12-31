@@ -4,18 +4,15 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
-	"time"
 
 	xmlutil "github.com/diegofxm/go-dian/internal/xml"
-	"github.com/diegofxm/go-dian/invoice"
-	"github.com/diegofxm/go-dian/signature"
-	"github.com/diegofxm/go-dian/soap"
+	"github.com/diegofxm/go-dian/pkg/invoice"
+	"github.com/diegofxm/go-dian/pkg/signature"
 )
 
 // Client representa el cliente para interactuar con DIAN
 type Client struct {
 	Config      Config
-	soapClient  *soap.Client
 	certManager *signature.CertificateManager
 }
 
@@ -25,15 +22,15 @@ func NewClient(config Config) (*Client, error) {
 		return nil, ErrInvalidNIT
 	}
 
-	if config.Certificate.Path == "" && config.Certificate.CertPEM == "" {
+	if config.Certificate.PEMPath == "" && config.Certificate.CertPEM == "" {
 		return nil, ErrMissingCertificate
 	}
 
 	var certManager *signature.CertificateManager
 	var err error
 
-	if config.Certificate.Path != "" {
-		certManager, err = signature.NewCertificateManager(config.Certificate.Path, config.Certificate.Password)
+	if config.Certificate.PEMPath != "" {
+		certManager, err = signature.NewCertificateManager(config.Certificate.PEMPath)
 		if err != nil {
 			return nil, fmt.Errorf("error cargando certificado: %w", err)
 		}
@@ -44,16 +41,8 @@ func NewClient(config Config) (*Client, error) {
 		}
 	}
 
-	var soapEnv soap.Environment
-	if config.Environment == EnvironmentProduction {
-		soapEnv = soap.EnvironmentProduction
-	} else {
-		soapEnv = soap.EnvironmentTest
-	}
-
 	return &Client{
 		Config:      config,
-		soapClient:  soap.NewClient(soapEnv),
 		certManager: certManager,
 	}, nil
 }
@@ -91,36 +80,6 @@ func (c *Client) CalculateCUFE(inv *invoice.Invoice) (string, error) {
 	return invoice.CalculateCUFE(inv, c.Config.NIT, string(c.Config.Environment))
 }
 
-// SendInvoice envía la factura a DIAN
-func (c *Client) SendInvoice(inv *invoice.Invoice) (*InvoiceResponse, error) {
-	// 1. Generar XML sin firmar
-	xmlData, err := c.GenerateInvoiceXML(inv)
-	if err != nil {
-		return nil, err
-	}
-
-	// 2. Firmar XML
-	signedXML, err := c.SignXML(xmlData)
-	if err != nil {
-		return nil, fmt.Errorf("error firmando XML: %w", err)
-	}
-
-	// 3. Enviar a DIAN vía SOAP
-	fileName := fmt.Sprintf("%s%s.xml", c.Config.InvoicePrefix, inv.ID)
-	response, err := c.soapClient.SendInvoice(fileName, signedXML)
-	if err != nil {
-		return nil, fmt.Errorf("error enviando a DIAN: %w", err)
-	}
-
-	return &InvoiceResponse{
-		Success:      response.Success,
-		Message:      response.StatusMessage,
-		CUFE:         response.CUFE,
-		Errors:       response.Errors,
-		ResponseDate: response.ResponseDate,
-	}, nil
-}
-
 // SignXML firma cualquier XML con el certificado digital
 func (c *Client) SignXML(xmlData []byte) ([]byte, error) {
 	if c.certManager == nil {
@@ -140,15 +99,6 @@ func (c *Client) SignXML(xmlData []byte) ([]byte, error) {
 	}
 
 	return signedXML, nil
-}
-
-// InvoiceResponse representa la respuesta de DIAN
-type InvoiceResponse struct {
-	Success      bool
-	Message      string
-	CUFE         string
-	Errors       []string
-	ResponseDate time.Time
 }
 
 // ValidateNIT valida el formato de un NIT colombiano

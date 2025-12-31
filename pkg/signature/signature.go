@@ -11,11 +11,8 @@ import (
 	"encoding/xml"
 	"fmt"
 	"os"
-	"os/exec"
 	"strings"
 	"time"
-
-	"software.sslmate.com/src/go-pkcs12"
 )
 
 type Signature struct {
@@ -135,27 +132,13 @@ type SigPolicyHash struct {
 	DigestValue  string       `xml:"http://www.w3.org/2000/09/xmldsig# DigestValue"`
 }
 
-func LoadCertificate(path, password string) (*x509.Certificate, *rsa.PrivateKey, error) {
-	if strings.HasSuffix(strings.ToLower(path), ".pem") {
-		return loadFromPEM(path)
+// LoadCertificate carga un certificado desde un archivo PEM
+// Solo acepta archivos .pem (no P12)
+func LoadCertificate(path string) (*x509.Certificate, *rsa.PrivateKey, error) {
+	if !strings.HasSuffix(strings.ToLower(path), ".pem") {
+		return nil, nil, fmt.Errorf("solo se aceptan archivos PEM (.pem). Use un convertidor para transformar P12 a PEM")
 	}
-
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return nil, nil, fmt.Errorf("error leyendo certificado: %w", err)
-	}
-
-	privateKey, certificate, err := pkcs12.Decode(data, password)
-	if err != nil {
-		return convertP12ToPEMAndLoad(path, password)
-	}
-
-	rsaKey, ok := privateKey.(*rsa.PrivateKey)
-	if !ok {
-		return nil, nil, fmt.Errorf("la clave privada no es RSA")
-	}
-
-	return certificate, rsaKey, nil
+	return loadFromPEM(path)
 }
 
 func loadFromPEM(pemPath string) (*x509.Certificate, *rsa.PrivateKey, error) {
@@ -169,11 +152,7 @@ func loadFromPEM(pemPath string) (*x509.Certificate, *rsa.PrivateKey, error) {
 
 // LoadPEMStrings carga certificado y clave privada desde strings PEM
 func LoadPEMStrings(certPEM, keyPEM string) (*x509.Certificate, *rsa.PrivateKey, error) {
-	if certPEM == "" || keyPEM == "" {
-		return nil, nil, fmt.Errorf("certificado y clave PEM son requeridos")
-	}
-
-	// Combinar certificado y clave en un solo string para parsear
+	// Combinar ambos strings
 	pemData := []byte(certPEM + "\n" + keyPEM)
 	return parsePEMData(pemData)
 }
@@ -224,27 +203,6 @@ func parsePEMData(pemData []byte) (*x509.Certificate, *rsa.PrivateKey, error) {
 	}
 
 	return cert, key, nil
-}
-
-func convertP12ToPEMAndLoad(p12Path, password string) (*x509.Certificate, *rsa.PrivateKey, error) {
-	pemPath := strings.TrimSuffix(p12Path, ".p12") + ".pem"
-
-	// Exportar certificado y clave privada en un solo archivo PEM
-	// -clcerts: solo certificados de cliente
-	// -nokeys: no exportar claves (para el primer comando)
-	// Usamos -nodes para no encriptar la clave privada
-	cmd := exec.Command("openssl", "pkcs12", "-in", p12Path, "-out", pemPath, "-nodes", "-passin", "pass:"+password, "-legacy")
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		// Intentar sin -legacy para versiones antiguas de OpenSSL
-		cmd = exec.Command("openssl", "pkcs12", "-in", p12Path, "-out", pemPath, "-nodes", "-passin", "pass:"+password)
-		output, err = cmd.CombinedOutput()
-		if err != nil {
-			return nil, nil, fmt.Errorf("error convirtiendo P12 a PEM: %w (output: %s)", err, string(output))
-		}
-	}
-
-	return loadFromPEM(pemPath)
 }
 
 func SignXMLDocument(xmlData []byte, cert *x509.Certificate, privateKey *rsa.PrivateKey) ([]byte, error) {

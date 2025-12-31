@@ -4,176 +4,207 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/diegofxm/go-dian"
+	"github.com/diegofxm/go-dian/pkg/common"
+	"github.com/diegofxm/go-dian/pkg/dian"
+	"github.com/diegofxm/go-dian/pkg/invoice"
 )
 
 func main() {
+	// Configurar cliente DIAN
 	client, err := dian.NewClient(dian.Config{
-		NIT:         "6382356",
+		NIT:         "830122566",
 		Environment: dian.EnvironmentTest,
 		SoftwareID:  "74fdde3e-8dc0-4d90-8515-4f9c19634999",
 		Certificate: dian.Certificate{
-			Path:     "../certificate.p12",
-			Password: "ScBPigJrvrKjmbqg",
+			PEMPath: "../certificates/certificate.pem",
 		},
+		InvoiceAuthorization: "18760000001",
+		AuthStartDate:        "2019-01-19",
+		AuthEndDate:          "2030-01-19",
+		InvoicePrefix:        "SETP",
+		AuthFrom:             "990000000",
+		AuthTo:               "995000000",
 	})
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("error creando cliente: %v", err)
 	}
 
-	invoice := dian.NewInvoice("BEC496329154")
+	// Crear factura
+	inv := invoice.NewInvoice("SETP990000001")
+	inv.InvoiceTypeCode = "01"
+	inv.DocumentCurrencyCode = invoice.DocumentCurrencyType{
+		Value:          "COP",
+		ListAgencyID:   "6",
+		ListAgencyName: "United Nations Economic Commission for Europe",
+	}
 
-	invoice.AccountingSupplierParty = dian.AccountingSupplierParty{
-		AdditionalAccountID: dian.AdditionalAccountIDType{
+	// Configurar emisor
+	inv.AccountingSupplierParty = invoice.AccountingSupplierParty{
+		AdditionalAccountID: common.AdditionalAccountIDType{
 			Value:      "1",
 			SchemeName: "tipos de personas",
 		},
-		Party: dian.Party{
-			IndustryClassificationCode: "6120",
-			PartyIdentification: dian.PartyIdentification{
-				ID: dian.IDType{
+		Party: common.Party{
+			PartyName: []common.PartyName{
+				{Name: "EMPRESA DE PRUEBA S.A.S"},
+			},
+			PhysicalLocation: &common.PhysicalLocation{
+				Address: common.Address{
+					ID:                   "11001",
+					CityName:             "Bogotá",
+					CountrySubentity:     "Bogotá",
+					CountrySubentityCode: "11",
+					Country: common.Country{
+						IdentificationCode: "CO",
+						Name:               "Colombia",
+					},
+				},
+			},
+			PartyTaxScheme: common.PartyTaxScheme{
+				RegistrationName: "EMPRESA DE PRUEBA S.A.S",
+				CompanyID: common.IDType{
 					Value:            "830122566",
-					SchemeID:         "1",
-					SchemeName:       "31",
+					SchemeID:         "31",
+					SchemeName:       "NIT",
 					SchemeAgencyID:   "195",
 					SchemeAgencyName: "CO, DIAN (Dirección de Impuestos y Aduanas Nacionales)",
 				},
-			},
-			PartyName: []dian.PartyName{
-				{Name: "COLOMBIA TELECOMUNICACIONES S.A. E.S.P. BIC"},
-			},
-			PartyTaxScheme: dian.PartyTaxScheme{
-				RegistrationName: "COLOMBIA TELECOMUNICACIONES S.A. E.S.P. BIC",
-				CompanyID: dian.IDType{
-					Value:            "830122566",
-					SchemeID:         "1",
-					SchemeName:       "31",
-					SchemeAgencyID:   "195",
-					SchemeAgencyName: "CO, DIAN (Dirección de Impuestos y Aduanas Nacionales)",
+				TaxLevelCode: common.TaxLevelCodeType{
+					Value:    "O-13",
+					ListName: "Responsabilidades",
 				},
-				TaxLevelCode: dian.TaxLevelCodeType{
-					Value:    "O-13;O-15;O-23",
-					ListName: "05",
-				},
-				TaxScheme: dian.TaxScheme{
+				TaxScheme: common.TaxScheme{
 					ID:   "01",
 					Name: "IVA",
 				},
 			},
-			PartyLegalEntity: dian.PartyLegalEntity{
-				RegistrationName: "COLOMBIA TELECOMUNICACIONES S.A. E.S.P. BIC",
-				CompanyID: dian.IDType{
+			PartyLegalEntity: common.PartyLegalEntity{
+				RegistrationName: "EMPRESA DE PRUEBA S.A.S",
+				CompanyID: common.IDType{
 					Value:            "830122566",
-					SchemeID:         "1",
-					SchemeName:       "31",
+					SchemeID:         "31",
+					SchemeName:       "NIT",
 					SchemeAgencyID:   "195",
 					SchemeAgencyName: "CO, DIAN (Dirección de Impuestos y Aduanas Nacionales)",
 				},
 			},
-			Contact: &dian.Contact{
-				Telephone:      "018000930930",
-				ElectronicMail: "contacto@empresa.com",
+			PartyIdentification: common.PartyIdentification{
+				ID: common.IDType{
+					Value:            "830122566",
+					SchemeID:         "31",
+					SchemeName:       "NIT",
+					SchemeAgencyID:   "195",
+					SchemeAgencyName: "CO, DIAN (Dirección de Impuestos y Aduanas Nacionales)",
+				},
 			},
 		},
 	}
 
-	invoice.AccountingCustomerParty = dian.AccountingCustomerParty{
-		AdditionalAccountID: dian.AdditionalAccountIDType{
-			Value:      "2",
+	// Configurar cliente
+	inv.AccountingCustomerParty = invoice.AccountingCustomerParty{
+		AdditionalAccountID: common.AdditionalAccountIDType{
+			Value:      "1",
 			SchemeName: "tipos de personas",
 		},
-		Party: dian.Party{
-			PartyIdentification: dian.PartyIdentification{
-				ID: dian.IDType{
-					Value:            "6382356",
-					SchemeID:         "13",
-					SchemeName:       "13",
+		Party: common.Party{
+			PartyName: []common.PartyName{
+				{Name: "CLIENTE DE PRUEBA"},
+			},
+			PhysicalLocation: &common.PhysicalLocation{
+				Address: common.Address{
+					ID:                   "11001",
+					CityName:             "Bogotá",
+					CountrySubentity:     "Bogotá",
+					CountrySubentityCode: "11",
+					Country: common.Country{
+						IdentificationCode: "CO",
+						Name:               "Colombia",
+					},
+				},
+			},
+			PartyTaxScheme: common.PartyTaxScheme{
+				RegistrationName: "CLIENTE DE PRUEBA",
+				CompanyID: common.IDType{
+					Value:            "900123456",
+					SchemeID:         "31",
+					SchemeName:       "NIT",
 					SchemeAgencyID:   "195",
 					SchemeAgencyName: "CO, DIAN (Dirección de Impuestos y Aduanas Nacionales)",
 				},
-			},
-			PartyName: []dian.PartyName{
-				{Name: "DIEGO FERNANDO MONTOYA"},
-			},
-			PartyTaxScheme: dian.PartyTaxScheme{
-				RegistrationName: "DIEGO FERNANDO MONTOYA",
-				CompanyID: dian.IDType{
-					Value:            "6382356",
-					SchemeID:         "13",
-					SchemeName:       "13",
-					SchemeAgencyID:   "195",
-					SchemeAgencyName: "CO, DIAN (Dirección de Impuestos y Aduanas Nacionales)",
+				TaxLevelCode: common.TaxLevelCodeType{
+					Value:    "O-13",
+					ListName: "Responsabilidades",
 				},
-				TaxLevelCode: dian.TaxLevelCodeType{
-					Value:    "R-99-PN",
-					ListName: "04",
-				},
-				TaxScheme: dian.TaxScheme{
+				TaxScheme: common.TaxScheme{
 					ID:   "01",
 					Name: "IVA",
 				},
 			},
-			PartyLegalEntity: dian.PartyLegalEntity{
-				RegistrationName: "DIEGO FERNANDO MONTOYA",
-				CompanyID: dian.IDType{
-					Value: "6382356",
+			PartyLegalEntity: common.PartyLegalEntity{
+				RegistrationName: "CLIENTE DE PRUEBA",
+				CompanyID: common.IDType{
+					Value:            "900123456",
+					SchemeID:         "31",
+					SchemeName:       "NIT",
+					SchemeAgencyID:   "195",
+					SchemeAgencyName: "CO, DIAN (Dirección de Impuestos y Aduanas Nacionales)",
 				},
 			},
-			Contact: &dian.Contact{
-				Name:           "DIEGO FERNANDO MONTOYA",
-				Telephone:      "3186708084",
-				ElectronicMail: "cliente@correo.com",
+			PartyIdentification: common.PartyIdentification{
+				ID: common.IDType{
+					Value:            "900123456",
+					SchemeID:         "31",
+					SchemeName:       "NIT",
+					SchemeAgencyID:   "195",
+					SchemeAgencyName: "CO, DIAN (Dirección de Impuestos y Aduanas Nacionales)",
+				},
 			},
 		},
 	}
 
-	invoice.AddLine(dian.InvoiceLine{
+	// Agregar línea de factura
+	line := invoice.InvoiceLine{
 		ID: "1",
-		InvoicedQuantity: dian.Quantity{
-			Value:    1,
+		InvoicedQuantity: common.Quantity{
+			Value:    1.0,
 			UnitCode: "94",
 		},
-		LineExtensionAmount: dian.AmountType{
-			Value:      23950,
+		LineExtensionAmount: common.AmountType{
+			Value:      100000.00,
 			CurrencyID: "COP",
 		},
-		Item: dian.Item{
-			Description: "Servicio de telecomunicaciones",
-			BrandName:   "N/A",
-			ModelName:   "N/A",
-			SellersItemIdentification: &dian.ItemIdentification{
-				ID: dian.IDType{Value: "1616"},
-			},
+		Item: invoice.Item{
+			Description: "Servicio de consultoría",
 		},
-		Price: dian.Price{
-			PriceAmount: dian.AmountType{
-				Value:      23950,
+		Price: invoice.Price{
+			PriceAmount: common.AmountType{
+				Value:      100000.00,
 				CurrencyID: "COP",
 			},
-			BaseQuantity: dian.Quantity{
-				Value:    1,
+			BaseQuantity: common.Quantity{
+				Value:    1.0,
 				UnitCode: "94",
 			},
 		},
-		TaxTotal: []dian.TaxTotal{
+		TaxTotal: []common.TaxTotal{
 			{
-				TaxAmount: dian.AmountType{
-					Value:      4550.50,
+				TaxAmount: common.AmountType{
+					Value:      19000.00,
 					CurrencyID: "COP",
 				},
-				TaxSubtotal: []dian.TaxSubtotal{
+				TaxSubtotal: []common.TaxSubtotal{
 					{
-						TaxableAmount: dian.AmountType{
-							Value:      23950,
+						TaxableAmount: common.AmountType{
+							Value:      100000.00,
 							CurrencyID: "COP",
 						},
-						TaxAmount: dian.AmountType{
-							Value:      4550.50,
+						TaxAmount: common.AmountType{
+							Value:      19000.00,
 							CurrencyID: "COP",
 						},
-						TaxCategory: dian.TaxCategory{
+						TaxCategory: common.TaxCategory{
 							Percent: 19.0,
-							TaxScheme: dian.TaxScheme{
+							TaxScheme: common.TaxScheme{
 								ID:   "01",
 								Name: "IVA",
 							},
@@ -182,51 +213,26 @@ func main() {
 				},
 			},
 		},
-	})
-
-	invoice.CalculateTotals()
-
-	// Agregar totales de impuestos a nivel de factura
-	invoice.TaxTotal = []dian.TaxTotal{
-		{
-			TaxAmount: dian.AmountType{
-				Value:      4550.50,
-				CurrencyID: "COP",
-			},
-			TaxSubtotal: []dian.TaxSubtotal{
-				{
-					TaxableAmount: dian.AmountType{
-						Value:      23950,
-						CurrencyID: "COP",
-					},
-					TaxAmount: dian.AmountType{
-						Value:      4550.50,
-						CurrencyID: "COP",
-					},
-					TaxCategory: dian.TaxCategory{
-						Percent: 19.0,
-						TaxScheme: dian.TaxScheme{
-							ID:   "01",
-							Name: "IVA",
-						},
-					},
-				},
-			},
-		},
 	}
 
-	xmlData, err := client.GenerateInvoiceXML(invoice)
+	inv.AddLine(line)
+	inv.CalculateTotals()
+
+	// Generar XML
+	xmlData, err := client.GenerateInvoiceXML(inv)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("error generando XML: %v", err)
 	}
 
 	fmt.Println("XML generado:")
 	fmt.Println(string(xmlData))
 
-	response, err := client.SendInvoice(invoice)
+	// Firmar XML
+	signedXML, err := client.SignXML(xmlData)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("error firmando XML: %v", err)
 	}
 
-	fmt.Printf("\nRespuesta DIAN: %+v\n", response)
+	fmt.Println("\nXML firmado exitosamente")
+	fmt.Printf("Tamaño: %d bytes\n", len(signedXML))
 }

@@ -11,8 +11,8 @@ type CertificateManager struct {
 	PrivateKey  *rsa.PrivateKey
 }
 
-func NewCertificateManager(certPath, password string) (*CertificateManager, error) {
-	cert, key, err := LoadCertificate(certPath, password)
+func NewCertificateManager(certPath string) (*CertificateManager, error) {
+	cert, key, err := LoadCertificate(certPath)
 	if err != nil {
 		return nil, fmt.Errorf("error cargando certificado: %w", err)
 	}

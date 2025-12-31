@@ -4,7 +4,7 @@ import (
 	"encoding/xml"
 	"fmt"
 
-	"github.com/diegofxm/go-dian/extensions"
+	"github.com/diegofxm/go-dian/pkg/extensions"
 )
 
 func GenerateXML(inv *Invoice, config GeneratorConfig) ([]byte, error) {

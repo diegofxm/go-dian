@@ -17,12 +17,11 @@ type Config struct {
 	AuthTo               string // Consecutivo hasta
 }
 
-// Certificate representa el certificado digital
+// Certificate representa el certificado digital (solo PEM)
 type Certificate struct {
-	Path     string // Ruta a certificado P12 o PEM
-	Password string // Contraseña del P12
-	CertPEM  string // Certificado PEM como string (para BD)
-	KeyPEM   string // Clave privada PEM como string (para BD)
+	PEMPath string // Ruta a certificado PEM
+	CertPEM string // Certificado PEM como string (para BD)
+	KeyPEM  string // Clave privada PEM como string (para BD)
 }
 
 // Environment define el ambiente de DIAN
