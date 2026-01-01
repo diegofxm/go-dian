@@ -3,20 +3,32 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/diegofxm/go-dian/pkg/common"
 	"github.com/diegofxm/go-dian/pkg/dian"
 	"github.com/diegofxm/go-dian/pkg/invoice"
+	"github.com/diegofxm/go-dian/pkg/soap"
 )
 
 func main() {
-	// Configurar cliente DIAN
+	// ========================================
+	// DATOS REALES DE HABILITACIÓN DIAN
+	// ========================================
+	// TestSetId: e6784f41-2aba-4ed3-bcb6-d045ab217e72
+	// SoftwareID: 23bf9eac-4dbe-4300-af06-541cc3efc7ca
+	// Clave Técnica: fc8eac422eba16e22ffd8c6f94b3f40a6e38162c
+	// PIN: 40125
+	// Cuota: 50 facturas (30 FE, 10 ND, 10 NC)
+	// ========================================
+
+	// Configurar cliente DIAN con datos reales
 	client, err := dian.NewClient(dian.Config{
-		NIT:         "830122566",
+		NIT:         "900123456", // Tu NIT
 		Environment: dian.EnvironmentTest,
-		SoftwareID:  "74fdde3e-8dc0-4d90-8515-4f9c19634999",
+		SoftwareID:  "23bf9eac-4dbe-4300-af06-541cc3efc7ca", // SoftwareID real
 		Certificate: dian.Certificate{
-			PEMPath: "../certificates/certificate.pem",
+			PEMPath: "../certificates/certificate.pem", // Ruta a tu certificado
 		},
 		InvoiceAuthorization: "18760000001",
 		AuthStartDate:        "2019-01-19",
@@ -29,8 +41,8 @@ func main() {
 		log.Fatalf("error creando cliente: %v", err)
 	}
 
-	// Crear factura
-	inv := invoice.NewInvoice("SETP990000001")
+	// Crear factura con número del rango autorizado
+	inv := invoice.NewInvoice("SETP990000001") // Usar rango 990000000-995000000
 	inv.InvoiceTypeCode = "01"
 	inv.DocumentCurrencyCode = invoice.DocumentCurrencyType{
 		Value:          "COP",
@@ -46,7 +58,7 @@ func main() {
 		},
 		Party: common.Party{
 			PartyName: []common.PartyName{
-				{Name: "EMPRESA DE PRUEBA S.A.S"},
+				{Name: "TechSolutions Colombia SAS"}, // Tu empresa
 			},
 			PhysicalLocation: &common.PhysicalLocation{
 				Address: common.Address{
@@ -61,9 +73,9 @@ func main() {
 				},
 			},
 			PartyTaxScheme: common.PartyTaxScheme{
-				RegistrationName: "EMPRESA DE PRUEBA S.A.S",
+				RegistrationName: "TECHSOLUTIONS COLOMBIA SAS",
 				CompanyID: common.IDType{
-					Value:            "830122566",
+					Value:            "900123456", // Tu NIT
 					SchemeID:         "31",
 					SchemeName:       "NIT",
 					SchemeAgencyID:   "195",
@@ -79,9 +91,9 @@ func main() {
 				},
 			},
 			PartyLegalEntity: common.PartyLegalEntity{
-				RegistrationName: "EMPRESA DE PRUEBA S.A.S",
+				RegistrationName: "TECHSOLUTIONS COLOMBIA SAS",
 				CompanyID: common.IDType{
-					Value:            "830122566",
+					Value:            "900123456",
 					SchemeID:         "31",
 					SchemeName:       "NIT",
 					SchemeAgencyID:   "195",
@@ -90,7 +102,7 @@ func main() {
 			},
 			PartyIdentification: common.PartyIdentification{
 				ID: common.IDType{
-					Value:            "830122566",
+					Value:            "900123456",
 					SchemeID:         "31",
 					SchemeName:       "NIT",
 					SchemeAgencyID:   "195",
@@ -219,20 +231,85 @@ func main() {
 	inv.CalculateTotals()
 
 	// Generar XML
+	fmt.Println("\n=== GENERANDO XML ===")
 	xmlData, err := client.GenerateInvoiceXML(inv)
 	if err != nil {
 		log.Fatalf("error generando XML: %v", err)
 	}
 
-	fmt.Println("XML generado:")
-	fmt.Println(string(xmlData))
+	fmt.Println("✅ XML generado exitosamente")
+	fmt.Printf("Tamaño: %d bytes\n", len(xmlData))
+
+	// Guardar XML sin firma (opcional, para debug)
+	if err := os.WriteFile("invoice_unsigned.xml", xmlData, 0644); err != nil {
+		log.Printf("⚠️  No se pudo guardar XML sin firma: %v", err)
+	} else {
+		fmt.Println("📄 XML sin firma guardado: invoice_unsigned.xml")
+	}
 
 	// Firmar XML
+	fmt.Println("\n=== FIRMANDO XML ===")
 	signedXML, err := client.SignXML(xmlData)
 	if err != nil {
 		log.Fatalf("error firmando XML: %v", err)
 	}
 
-	fmt.Println("\nXML firmado exitosamente")
+	fmt.Println("✅ XML firmado exitosamente")
 	fmt.Printf("Tamaño: %d bytes\n", len(signedXML))
+
+	// Guardar XML firmado
+	if err := os.WriteFile("invoice_signed.xml", signedXML, 0644); err != nil {
+		log.Printf("⚠️  No se pudo guardar XML firmado: %v", err)
+	} else {
+		fmt.Println("📄 XML firmado guardado: invoice_signed.xml")
+	}
+
+	// ========================================
+	// ENVIAR A DIAN (SOAP)
+	// ========================================
+	fmt.Println("\n=== ENVIANDO A DIAN ===")
+	fmt.Println("URL: https://vpfe-hab.dian.gov.co/WcfDianCustomerServices.svc")
+	fmt.Println("TestSetId: e6784f41-2aba-4ed3-bcb6-d045ab217e72")
+
+	// Crear cliente SOAP con certificado para autenticación TLS
+	// DIAN requiere autenticación mediante certificado digital (mTLS)
+	// El archivo PEM contiene tanto el certificado como la llave privada
+	pemData, err := os.ReadFile("../certificates/certificate.pem")
+	if err != nil {
+		log.Fatalf("❌ Error leyendo certificado: %v", err)
+	}
+
+	// El mismo archivo PEM contiene certificado y llave privada
+	soapClient, err := soap.NewClient(soap.Test, pemData, pemData)
+	if err != nil {
+		log.Fatalf("❌ Error creando cliente SOAP: %v", err)
+	}
+
+	// Enviar factura
+	fmt.Println("\n📤 Enviando factura a DIAN...")
+	fileName := "SETP990000001.zip"
+	response, err := soapClient.SendInvoice(fileName, signedXML)
+	if err != nil {
+		log.Fatalf("❌ Error enviando factura: %v", err)
+	}
+
+	// Mostrar respuesta
+	fmt.Println("\n=== RESPUESTA DIAN ===")
+	if response.IsValid {
+		fmt.Println("✅ FACTURA ACEPTADA")
+	} else {
+		fmt.Println("❌ FACTURA RECHAZADA")
+	}
+	fmt.Printf("Código: %s\n", response.StatusCode)
+	fmt.Printf("Mensaje: %s\n", response.StatusMessage)
+	fmt.Printf("CUFE: %s\n", response.CUFE)
+
+	if len(response.ErrorMessages) > 0 {
+		fmt.Println("\n⚠️  ERRORES:")
+		for i, errMsg := range response.ErrorMessages {
+			fmt.Printf("  %d. %s\n", i+1, errMsg)
+		}
+	}
+
+	fmt.Println("\n=== PROCESO COMPLETADO ===")
 }
