@@ -1,4 +1,4 @@
-# go-dian v0.3.0
+# go-dian
 
 Librería Go profesional para Facturación Electrónica DIAN Colombia.
 
