@@ -80,8 +80,9 @@ func (c *Client) SendInvoice(fileName string, signedXML []byte) (*Response, erro
 	// 1. Codificar XML en base64
 	contentFile := base64.StdEncoding.EncodeToString(signedXML)
 
-	// 2. Generar WS-Security Header
-	wsSecurityHeader, err := c.HeaderBuilder.Build()
+	// 2. Generar WS-Security Header (con wsa:To firmado - requerido por DIAN)
+	wsaAction := "http://wcf.dian.colombia/IWcfDianCustomerServices/SendBillSync"
+	wsSecurityHeader, err := c.HeaderBuilder.Build(c.URL)
 	if err != nil {
 		return nil, fmt.Errorf("error generando WS-Security header: %w", err)
 	}
@@ -90,7 +91,7 @@ func (c *Client) SendInvoice(fileName string, signedXML []byte) (*Response, erro
 	soapMessage, err := c.EnvelopeBuilder.BuildSendBillSync(
 		fileName,
 		contentFile,
-		wsSecurityHeader.ToXML(),
+		wsSecurityHeader.ToXML(wsaAction),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("error construyendo envelope SOAP: %w", err)

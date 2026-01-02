@@ -1,14 +1,15 @@
 package common
 
 // Party representa una parte (emisor o cliente)
+// IMPORTANTE: El orden de los campos debe seguir el schema UBL 2.1 de DIAN
 type Party struct {
+	PartyIdentification        PartyIdentification `xml:"cac:PartyIdentification"`
 	PartyName                  []PartyName         `xml:"cac:PartyName,omitempty"`
 	PhysicalLocation           *PhysicalLocation   `xml:"cac:PhysicalLocation,omitempty"`
 	PartyTaxScheme             PartyTaxScheme      `xml:"cac:PartyTaxScheme"`
 	PartyLegalEntity           PartyLegalEntity    `xml:"cac:PartyLegalEntity"`
 	Contact                    *Contact            `xml:"cac:Contact,omitempty"`
 	IndustryClassificationCode string              `xml:"cbc:IndustryClassificationCode,omitempty"`
-	PartyIdentification        PartyIdentification `xml:"cac:PartyIdentification"`
 }
 
 // PartyIdentification representa la identificación de una parte

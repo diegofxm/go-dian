@@ -16,6 +16,8 @@ type Header struct {
 	BinarySecurityToken *BinarySecurityToken
 	Timestamp           *Timestamp
 	Signature           *Signature
+	WsaToID             string
+	WsaToURL            string
 }
 
 // BinarySecurityToken representa el certificado en el header
@@ -54,11 +56,12 @@ func NewHeaderBuilder(cert tls.Certificate) (*HeaderBuilder, error) {
 	}, nil
 }
 
-// Build construye el WS-Security Header completo
-func (hb *HeaderBuilder) Build() (*Header, error) {
+// Build construye el WS-Security Header completo con wsa:To firmado
+func (hb *HeaderBuilder) Build(wsaToURL string) (*Header, error) {
 	// 1. Generar IDs únicos
 	securityTokenID := "SecurityToken-" + uuid.New().String()
 	timestampID := "Timestamp-" + uuid.New().String()
+	wsaToID := "ID-" + uuid.New().String()
 
 	// 2. Crear BinarySecurityToken
 	certBase64 := base64.StdEncoding.EncodeToString(hb.certBytes)
@@ -72,9 +75,9 @@ func (hb *HeaderBuilder) Build() (*Header, error) {
 	// 3. Crear Timestamp (válido por 5 minutos)
 	timestamp := NewTimestamp(timestampID, 5*time.Minute)
 
-	// 4. Crear Signature
+	// 4. Crear Signature (firma Timestamp Y wsa:To - requerido por DIAN)
 	signer := NewSigner(hb.privateKey, hb.certificate, hb.certBytes)
-	signature, err := signer.SignTimestamp(timestamp, securityTokenID)
+	signature, err := signer.SignTimestamp(timestamp, securityTokenID, wsaToID, wsaToURL)
 	if err != nil {
 		return nil, fmt.Errorf("error firmando timestamp: %w", err)
 	}
@@ -83,11 +86,13 @@ func (hb *HeaderBuilder) Build() (*Header, error) {
 		BinarySecurityToken: binaryToken,
 		Timestamp:           timestamp,
 		Signature:           signature,
+		WsaToID:             wsaToID,
+		WsaToURL:            wsaToURL,
 	}, nil
 }
 
-// ToXML genera el XML completo del WS-Security Header
-func (h *Header) ToXML() string {
+// ToXML genera el XML completo del WS-Security Header con wsa:Action y wsa:To
+func (h *Header) ToXML(wsaAction string) string {
 	xml := `<wsse:Security xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd" xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd">`
 
 	// BinarySecurityToken
@@ -104,5 +109,12 @@ func (h *Header) ToXML() string {
 	xml += h.Signature.ToXML()
 
 	xml += `</wsse:Security>`
+
+	// wsa:Action (fuera de wsse:Security)
+	xml += fmt.Sprintf(`<wsa:Action xmlns:wsa="http://www.w3.org/2005/08/addressing">%s</wsa:Action>`, wsaAction)
+
+	// wsa:To (fuera de wsse:Security, con wsu:Id para que pueda ser firmado)
+	xml += fmt.Sprintf(`<wsa:To xmlns:wsa="http://www.w3.org/2005/08/addressing" xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd" wsu:Id="%s">%s</wsa:To>`, h.WsaToID, h.WsaToURL)
+
 	return xml
 }

@@ -152,8 +152,8 @@ func NewInvoice(id string) *Invoice {
 		XmlnsCac:           "urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2",
 		XmlnsSts:           "dian:gov:co:facturaelectronica:Structures-2-1",
 		UBLVersionID:       "UBL 2.1",
-		CustomizationID:    "05",
-		ProfileID:          "DIAN 2.1",
+		CustomizationID:    "1",
+		ProfileID:          "DIAN 2.1: Factura Electrónica de Venta",
 		ProfileExecutionID: "2",
 		ID:                 id,
 		UUID: UUIDType{
@@ -181,17 +181,48 @@ func (i *Invoice) AddLine(line InvoiceLine) {
 }
 
 func (i *Invoice) CalculateTotals() {
-	var lineExtension, taxExclusive, taxInclusive, totalTax float64
+	var lineExtension, taxExclusive, taxInclusive float64
+
+	// Agrupar impuestos por tipo (ID) y porcentaje
+	taxMap := make(map[string]*common.TaxSubtotal)
 
 	for _, line := range i.InvoiceLines {
 		lineExtension += line.LineExtensionAmount.Value
 
-		for _, tax := range line.TaxTotal {
-			totalTax += tax.TaxAmount.Value
+		for _, lineTax := range line.TaxTotal {
+			for _, subtotal := range lineTax.TaxSubtotal {
+				key := subtotal.TaxCategory.TaxScheme.ID + "_" + fmt.Sprintf("%.2f", subtotal.TaxCategory.Percent)
+
+				if existing, ok := taxMap[key]; ok {
+					existing.TaxableAmount.Value += subtotal.TaxableAmount.Value
+					existing.TaxAmount.Value += subtotal.TaxAmount.Value
+				} else {
+					taxMap[key] = &common.TaxSubtotal{
+						TaxableAmount: common.AmountType{
+							Value:      subtotal.TaxableAmount.Value,
+							CurrencyID: "COP",
+						},
+						TaxAmount: common.AmountType{
+							Value:      subtotal.TaxAmount.Value,
+							CurrencyID: "COP",
+						},
+						TaxCategory: subtotal.TaxCategory,
+					}
+				}
+			}
 		}
 	}
 
 	taxExclusive = lineExtension
+
+	// Calcular total de impuestos y crear TaxTotal con subtotales
+	var totalTax float64
+	var taxSubtotals []common.TaxSubtotal
+	for _, subtotal := range taxMap {
+		totalTax += subtotal.TaxAmount.Value
+		taxSubtotals = append(taxSubtotals, *subtotal)
+	}
+
 	taxInclusive = lineExtension + totalTax
 
 	i.LegalMonetaryTotal = common.LegalMonetaryTotal{
@@ -204,7 +235,8 @@ func (i *Invoice) CalculateTotals() {
 	if totalTax > 0 {
 		i.TaxTotal = []common.TaxTotal{
 			{
-				TaxAmount: common.AmountType{Value: totalTax, CurrencyID: "COP"},
+				TaxAmount:   common.AmountType{Value: totalTax, CurrencyID: "COP"},
+				TaxSubtotal: taxSubtotals,
 			},
 		}
 	}

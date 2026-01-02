@@ -58,8 +58,8 @@ func NewSigner(privateKey *rsa.PrivateKey, certificate *x509.Certificate, certBy
 	}
 }
 
-// SignTimestamp firma un timestamp y retorna una Signature completa
-func (s *Signer) SignTimestamp(timestamp *Timestamp, securityTokenID string) (*Signature, error) {
+// SignTimestamp firma un timestamp y wsa:To, retorna una Signature completa
+func (s *Signer) SignTimestamp(timestamp *Timestamp, securityTokenID string, wsaToID string, wsaToURL string) (*Signature, error) {
 	// 1. Generar DigestValue del Timestamp
 	timestampXML := timestamp.ToXML()
 	timestampCanonical, err := CanonicalizeSigned(timestampXML)
@@ -71,7 +71,7 @@ func (s *Signer) SignTimestamp(timestamp *Timestamp, securityTokenID string) (*S
 	timestampDigestB64 := base64.StdEncoding.EncodeToString(timestampDigest[:])
 
 	// 2. Crear Reference para el Timestamp
-	ref := &Reference{
+	refTimestamp := &Reference{
 		URI:          "#" + timestamp.ID,
 		DigestMethod: "http://www.w3.org/2001/04/xmlenc#sha256",
 		DigestValue:  timestampDigestB64,
@@ -80,21 +80,41 @@ func (s *Signer) SignTimestamp(timestamp *Timestamp, securityTokenID string) (*S
 		},
 	}
 
-	// 3. Crear SignedInfo
+	// 3. Generar DigestValue del wsa:To (REQUERIDO POR DIAN)
+	wsaToXML := fmt.Sprintf(`<wsa:To xmlns:wsa="http://www.w3.org/2005/08/addressing" xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd" wsu:Id="%s">%s</wsa:To>`, wsaToID, wsaToURL)
+	wsaToCanonical, err := CanonicalizeSigned(wsaToXML)
+	if err != nil {
+		return nil, fmt.Errorf("error canonicalizando wsa:To: %w", err)
+	}
+
+	wsaToDigest := sha256.Sum256(wsaToCanonical)
+	wsaToDigestB64 := base64.StdEncoding.EncodeToString(wsaToDigest[:])
+
+	// 4. Crear Reference para wsa:To
+	refWsaTo := &Reference{
+		URI:          "#" + wsaToID,
+		DigestMethod: "http://www.w3.org/2001/04/xmlenc#sha256",
+		DigestValue:  wsaToDigestB64,
+		Transforms: []string{
+			"http://www.w3.org/2001/10/xml-exc-c14n#",
+		},
+	}
+
+	// 5. Crear SignedInfo con AMBAS referencias (Timestamp Y wsa:To)
 	signedInfo := &SignedInfo{
 		CanonicalizationMethod: "http://www.w3.org/2001/10/xml-exc-c14n#",
 		SignatureMethod:        "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256",
-		References:             []*Reference{ref},
+		References:             []*Reference{refTimestamp, refWsaTo},
 	}
 
-	// 4. Canonicalizar SignedInfo
+	// 6. Canonicalizar SignedInfo
 	signedInfoXML := signedInfo.ToXML()
 	signedInfoCanonical, err := CanonicalizeSigned(signedInfoXML)
 	if err != nil {
 		return nil, fmt.Errorf("error canonicalizando SignedInfo: %w", err)
 	}
 
-	// 5. Firmar SignedInfo
+	// 7. Firmar SignedInfo
 	signedInfoHash := sha256.Sum256(signedInfoCanonical)
 	signatureBytes, err := rsa.SignPKCS1v15(rand.Reader, s.privateKey, crypto.SHA256, signedInfoHash[:])
 	if err != nil {
@@ -103,7 +123,7 @@ func (s *Signer) SignTimestamp(timestamp *Timestamp, securityTokenID string) (*S
 
 	signatureValue := base64.StdEncoding.EncodeToString(signatureBytes)
 
-	// 6. Crear KeyInfo
+	// 8. Crear KeyInfo
 	keyInfo := &KeyInfo{
 		SecurityTokenReference: &SecurityTokenReference{
 			Reference: "#" + securityTokenID,
