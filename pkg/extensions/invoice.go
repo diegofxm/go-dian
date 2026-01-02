@@ -2,6 +2,7 @@ package extensions
 
 import (
 	"crypto/sha256"
+	"crypto/sha512"
 	"encoding/base64"
 	"encoding/xml"
 	"fmt"
@@ -68,9 +69,10 @@ type AuthorizationProvider struct {
 	AuthorizationProviderID IDType `xml:"sts:AuthorizationProviderID"`
 }
 
-func GenerateSoftwareSecurityCode(softwareID, nit, invoiceID string) string {
-	data := fmt.Sprintf("%s%s%s", softwareID, nit, invoiceID)
-	hash := sha256.Sum256([]byte(data))
+func GenerateSoftwareSecurityCode(softwareID, pin string) string {
+	// SoftwareSecurityCode = SHA-384(SoftwareID + PIN)
+	data := softwareID + pin
+	hash := sha512.Sum384([]byte(data))
 	return fmt.Sprintf("%x", hash)
 }
 

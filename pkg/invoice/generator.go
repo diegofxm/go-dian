@@ -25,6 +25,7 @@ func GenerateXML(inv *Invoice, config GeneratorConfig) ([]byte, error) {
 type GeneratorConfig struct {
 	NIT                  string
 	SoftwareID           string
+	PIN                  string
 	InvoiceAuthorization string
 	AuthStartDate        string
 	AuthEndDate          string
@@ -70,7 +71,7 @@ func buildExtensions(inv *Invoice, config GeneratorConfig) *UBLExtensions {
 			},
 		},
 		SoftwareSecurityCode: extensions.SoftwareSecurityCode{
-			Value:            extensions.GenerateSoftwareSecurityCode(config.SoftwareID, config.NIT, inv.ID),
+			Value:            extensions.GenerateSoftwareSecurityCode(config.SoftwareID, config.PIN),
 			SchemeAgencyID:   "195",
 			SchemeAgencyName: "CO, DIAN (Dirección de Impuestos y Aduanas Nacionales)",
 		},

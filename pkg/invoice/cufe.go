@@ -6,7 +6,7 @@ import (
 	"github.com/diegofxm/go-dian/internal/hash"
 )
 
-func CalculateCUFE(inv *Invoice, nit string, environment string) (string, error) {
+func CalculateCUFE(inv *Invoice, nit string, technicalKey string, environment string) (string, error) {
 	if len(inv.TaxTotal) == 0 {
 		return "", fmt.Errorf("la factura debe tener al menos un TaxTotal")
 	}
@@ -18,7 +18,6 @@ func CalculateCUFE(inv *Invoice, nit string, environment string) (string, error)
 	taxAmount := fmt.Sprintf("%.2f", inv.TaxTotal[0].TaxAmount.Value)
 	totalAmount := fmt.Sprintf("%.2f", inv.LegalMonetaryTotal.PayableAmount.Value)
 	customerNIT := inv.AccountingCustomerParty.Party.PartyTaxScheme.CompanyID.Value
-	technicalKey := ""
 
 	cufe := hash.CalculateCUFE(
 		invoiceNumber,

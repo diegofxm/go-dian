@@ -3,6 +3,7 @@ package extensions
 type ExtensionBuilder struct {
 	NIT                  string
 	SoftwareID           string
+	PIN                  string
 	InvoiceAuthorization string
 	AuthStartDate        string
 	AuthEndDate          string
@@ -65,7 +66,7 @@ func (eb *ExtensionBuilder) Build(invoiceID, uuid string) *DianExtensions {
 			},
 		},
 		SoftwareSecurityCode: SoftwareSecurityCode{
-			Value:            GenerateSoftwareSecurityCode(eb.SoftwareID, eb.NIT, invoiceID),
+			Value:            GenerateSoftwareSecurityCode(eb.SoftwareID, eb.PIN),
 			SchemeAgencyID:   "195",
 			SchemeAgencyName: "CO, DIAN (Dirección de Impuestos y Aduanas Nacionales)",
 		},

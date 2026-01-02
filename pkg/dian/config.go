@@ -2,11 +2,13 @@ package dian
 
 // Config contiene la configuración del cliente
 type Config struct {
-	NIT         string
-	Certificate Certificate
-	Environment Environment
-	SoftwareID  string
-	TestSetID   string
+	NIT          string
+	Certificate  Certificate
+	Environment  Environment
+	SoftwareID   string
+	TestSetID    string
+	TechnicalKey string // Clave técnica del software (para CUFE)
+	PIN          string // PIN del software (para SoftwareSecurityCode)
 
 	// Datos de autorización DIAN (específicos por empresa)
 	InvoiceAuthorization string // Número de autorización DIAN

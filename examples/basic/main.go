@@ -26,9 +26,11 @@ func main() {
 
 	// Configurar cliente DIAN con datos reales
 	client, err := dian.NewClient(dian.Config{
-		NIT:         "6382356", // NIT real de DIEGO FERNANDO MONTOYA VALLEJO
-		Environment: dian.EnvironmentTest,
-		SoftwareID:  "23bf9eac-4dbe-4300-af06-541cc3efc7ca", // SoftwareID real
+		NIT:          "6382356", // NIT real de DIEGO FERNANDO MONTOYA VALLEJO
+		Environment:  dian.EnvironmentTest,
+		SoftwareID:   "23bf9eac-4dbe-4300-af06-541cc3efc7ca", // SoftwareID real
+		TechnicalKey: "fc8eac422eba16e22ffd8c6f94b3f40a6e38162c",
+		PIN:          "40125",
 		Certificate: dian.Certificate{
 			PEMPath: "../certificates/certificate.pem", // Ruta a tu certificado
 		},

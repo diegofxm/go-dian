@@ -152,7 +152,7 @@ func NewInvoice(id string) *Invoice {
 		XmlnsCac:           "urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2",
 		XmlnsSts:           "dian:gov:co:facturaelectronica:Structures-2-1",
 		UBLVersionID:       "UBL 2.1",
-		CustomizationID:    "1",
+		CustomizationID:    "10",
 		ProfileID:          "DIAN 2.1: Factura Electrónica de Venta",
 		ProfileExecutionID: "2",
 		ID:                 id,

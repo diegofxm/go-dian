@@ -54,7 +54,7 @@ func (c *Client) GenerateInvoiceXML(inv *invoice.Invoice) ([]byte, error) {
 	}
 
 	// Calcular CUFE
-	cufe, err := invoice.CalculateCUFE(inv, c.Config.NIT, string(c.Config.Environment))
+	cufe, err := invoice.CalculateCUFE(inv, c.Config.NIT, c.Config.TechnicalKey, string(c.Config.Environment))
 	if err != nil {
 		return nil, fmt.Errorf("error calculando CUFE: %w", err)
 	}
@@ -64,6 +64,7 @@ func (c *Client) GenerateInvoiceXML(inv *invoice.Invoice) ([]byte, error) {
 	genConfig := invoice.GeneratorConfig{
 		NIT:                  c.Config.NIT,
 		SoftwareID:           c.Config.SoftwareID,
+		PIN:                  c.Config.PIN,
 		InvoiceAuthorization: c.Config.InvoiceAuthorization,
 		AuthStartDate:        c.Config.AuthStartDate,
 		AuthEndDate:          c.Config.AuthEndDate,
@@ -77,7 +78,7 @@ func (c *Client) GenerateInvoiceXML(inv *invoice.Invoice) ([]byte, error) {
 
 // CalculateCUFE calcula el Código Único de Factura Electrónica
 func (c *Client) CalculateCUFE(inv *invoice.Invoice) (string, error) {
-	return invoice.CalculateCUFE(inv, c.Config.NIT, string(c.Config.Environment))
+	return invoice.CalculateCUFE(inv, c.Config.NIT, c.Config.TechnicalKey, string(c.Config.Environment))
 }
 
 // SignXML firma cualquier XML con el certificado digital
