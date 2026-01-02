@@ -17,8 +17,8 @@ func main() {
 	// ========================================
 	// DATOS REALES DE HABILITACIÓN DIAN
 	// ========================================
-	// TestSetId: e6784f41-2aba-4ed3-bcb6-d045ab217e72
-	// SoftwareID: 23bf9eac-4dbe-4300-af06-541cc3efc7ca
+	// TestSetId: 64126b5e-eb24-4472-91da-b56fbeb911aa
+	// SoftwareID: f51f9d40-ad31-49d1-8414-48696722a99e
 	// Clave Técnica: fc8eac422eba16e22ffd8c6f94b3f40a6e38162c
 	// PIN: 40125
 	// Cuota: 50 facturas (30 FE, 10 ND, 10 NC)
@@ -28,7 +28,7 @@ func main() {
 	client, err := dian.NewClient(dian.Config{
 		NIT:          "6382356", // NIT real de DIEGO FERNANDO MONTOYA VALLEJO
 		Environment:  dian.EnvironmentTest,
-		SoftwareID:   "23bf9eac-4dbe-4300-af06-541cc3efc7ca", // SoftwareID real
+		SoftwareID:   "f51f9d40-ad31-49d1-8414-48696722a99e", // SoftwareID real
 		TechnicalKey: "fc8eac422eba16e22ffd8c6f94b3f40a6e38162c",
 		PIN:          "40125",
 		Certificate: dian.Certificate{
@@ -287,7 +287,7 @@ func main() {
 	// ========================================
 	fmt.Println("\n=== ENVIANDO A DIAN ===")
 	fmt.Println("URL: https://vpfe-hab.dian.gov.co/WcfDianCustomerServices.svc")
-	fmt.Println("TestSetId: e6784f41-2aba-4ed3-bcb6-d045ab217e72")
+	fmt.Println("TestSetId: 64126b5e-eb24-4472-91da-b56fbeb911aa")
 
 	// Crear cliente SOAP con certificado para autenticación TLS
 	// DIAN requiere autenticación mediante certificado digital (mTLS)
