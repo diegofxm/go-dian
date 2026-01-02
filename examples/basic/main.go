@@ -83,8 +83,8 @@ func main() {
 				RegistrationName: "DIEGO FERNANDO MONTOYA VALLEJO",
 				CompanyID: common.IDType{
 					Value:            "6382356",
-					SchemeID:         "31",
-					SchemeName:       "NIT",
+					SchemeID:         "13",
+					SchemeName:       "13",
 					SchemeAgencyID:   "195",
 					SchemeAgencyName: "CO, DIAN (Dirección de Impuestos y Aduanas Nacionales)",
 				},
@@ -101,8 +101,8 @@ func main() {
 				RegistrationName: "DIEGO FERNANDO MONTOYA VALLEJO",
 				CompanyID: common.IDType{
 					Value:            "6382356",
-					SchemeID:         "31",
-					SchemeName:       "NIT",
+					SchemeID:         "13",
+					SchemeName:       "13",
 					SchemeAgencyID:   "195",
 					SchemeAgencyName: "CO, DIAN (Dirección de Impuestos y Aduanas Nacionales)",
 				},
@@ -110,8 +110,8 @@ func main() {
 			PartyIdentification: common.PartyIdentification{
 				ID: common.IDType{
 					Value:            "6382356",
-					SchemeID:         "31",
-					SchemeName:       "NIT",
+					SchemeID:         "13",
+					SchemeName:       "13",
 					SchemeAgencyID:   "195",
 					SchemeAgencyName: "CO, DIAN (Dirección de Impuestos y Aduanas Nacionales)",
 				},
@@ -148,8 +148,8 @@ func main() {
 				RegistrationName: "CLIENTE DE PRUEBA",
 				CompanyID: common.IDType{
 					Value:            "900123456",
-					SchemeID:         "31",
-					SchemeName:       "NIT",
+					SchemeID:         "3",
+					SchemeName:       "31",
 					SchemeAgencyID:   "195",
 					SchemeAgencyName: "CO, DIAN (Dirección de Impuestos y Aduanas Nacionales)",
 				},
@@ -166,8 +166,8 @@ func main() {
 				RegistrationName: "CLIENTE DE PRUEBA",
 				CompanyID: common.IDType{
 					Value:            "900123456",
-					SchemeID:         "31",
-					SchemeName:       "NIT",
+					SchemeID:         "3",
+					SchemeName:       "31",
 					SchemeAgencyID:   "195",
 					SchemeAgencyName: "CO, DIAN (Dirección de Impuestos y Aduanas Nacionales)",
 				},

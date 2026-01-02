@@ -104,6 +104,8 @@ type TaxScheme struct {
 
 // AdditionalAccountIDType representa el tipo de persona con atributos
 type AdditionalAccountIDType struct {
-	Value      string `xml:",chardata"`
-	SchemeName string `xml:"schemeName,attr,omitempty"`
+	Value          string `xml:",chardata"`
+	SchemeID       string `xml:"schemeID,attr,omitempty"`
+	SchemeAgencyID string `xml:"schemeAgencyID,attr,omitempty"`
+	SchemeName     string `xml:"schemeName,attr,omitempty"`
 }

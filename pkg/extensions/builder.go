@@ -57,7 +57,7 @@ func (eb *ExtensionBuilder) Build(invoiceID, uuid string) *DianExtensions {
 				SchemeAgencyID:   "195",
 				SchemeAgencyName: "CO, DIAN (Dirección de Impuestos y Aduanas Nacionales)",
 				SchemeName:       "31",
-				SchemeID:         "1",
+				SchemeID:         "3",
 			},
 			SoftwareID: IDType{
 				Value:            eb.SoftwareID,

@@ -62,7 +62,7 @@ func buildExtensions(inv *Invoice, config GeneratorConfig) *UBLExtensions {
 				SchemeAgencyID:   "195",
 				SchemeAgencyName: "CO, DIAN (Dirección de Impuestos y Aduanas Nacionales)",
 				SchemeName:       "31",
-				SchemeID:         "4",
+				SchemeID:         "3",
 			},
 			SoftwareID: extensions.IDType{
 				Value:            config.SoftwareID,
