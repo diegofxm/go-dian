@@ -135,6 +135,9 @@ func main() {
 					CityName:             "Bogotá",
 					CountrySubentity:     "Bogotá",
 					CountrySubentityCode: "11",
+					AddressLine: &common.AddressLine{
+						Line: "Calle 100 # 10-20",
+					},
 					Country: common.Country{
 						IdentificationCode: "CO",
 						Name:               "Colombia",
