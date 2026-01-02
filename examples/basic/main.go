@@ -1,6 +1,8 @@
 package main
 
 import (
+	"archive/zip"
+	"bytes"
 	"fmt"
 	"log"
 	"os"
@@ -24,7 +26,7 @@ func main() {
 
 	// Configurar cliente DIAN con datos reales
 	client, err := dian.NewClient(dian.Config{
-		NIT:         "900123456", // Tu NIT
+		NIT:         "6382356", // NIT real de DIEGO FERNANDO MONTOYA VALLEJO
 		Environment: dian.EnvironmentTest,
 		SoftwareID:  "23bf9eac-4dbe-4300-af06-541cc3efc7ca", // SoftwareID real
 		Certificate: dian.Certificate{
@@ -58,14 +60,17 @@ func main() {
 		},
 		Party: common.Party{
 			PartyName: []common.PartyName{
-				{Name: "TechSolutions Colombia SAS"}, // Tu empresa
+				{Name: "DIEGO FERNANDO MONTOYA VALLEJO"},
 			},
 			PhysicalLocation: &common.PhysicalLocation{
 				Address: common.Address{
-					ID:                   "11001",
-					CityName:             "Bogotá",
-					CountrySubentity:     "Bogotá",
-					CountrySubentityCode: "11",
+					ID:                   "76520",
+					CityName:             "Palmira",
+					CountrySubentity:     "Valle del Cauca",
+					CountrySubentityCode: "76",
+					AddressLine: &common.AddressLine{
+						Line: "CL 30 40 69",
+					},
 					Country: common.Country{
 						IdentificationCode: "CO",
 						Name:               "Colombia",
@@ -73,9 +78,9 @@ func main() {
 				},
 			},
 			PartyTaxScheme: common.PartyTaxScheme{
-				RegistrationName: "TECHSOLUTIONS COLOMBIA SAS",
+				RegistrationName: "DIEGO FERNANDO MONTOYA VALLEJO",
 				CompanyID: common.IDType{
-					Value:            "900123456", // Tu NIT
+					Value:            "6382356",
 					SchemeID:         "31",
 					SchemeName:       "NIT",
 					SchemeAgencyID:   "195",
@@ -91,9 +96,9 @@ func main() {
 				},
 			},
 			PartyLegalEntity: common.PartyLegalEntity{
-				RegistrationName: "TECHSOLUTIONS COLOMBIA SAS",
+				RegistrationName: "DIEGO FERNANDO MONTOYA VALLEJO",
 				CompanyID: common.IDType{
-					Value:            "900123456",
+					Value:            "6382356",
 					SchemeID:         "31",
 					SchemeName:       "NIT",
 					SchemeAgencyID:   "195",
@@ -102,7 +107,7 @@ func main() {
 			},
 			PartyIdentification: common.PartyIdentification{
 				ID: common.IDType{
-					Value:            "900123456",
+					Value:            "6382356",
 					SchemeID:         "31",
 					SchemeName:       "NIT",
 					SchemeAgencyID:   "195",
@@ -171,6 +176,14 @@ func main() {
 					SchemeAgencyName: "CO, DIAN (Dirección de Impuestos y Aduanas Nacionales)",
 				},
 			},
+		},
+	}
+
+	// Agregar medio de pago (requerido por DIAN)
+	inv.PaymentMeans = []common.PaymentMeans{
+		{
+			ID:               "1",
+			PaymentMeansCode: "10", // 10 = Efectivo
 		},
 	}
 
@@ -285,10 +298,23 @@ func main() {
 		log.Fatalf("❌ Error creando cliente SOAP: %v", err)
 	}
 
+	// Crear ZIP con la factura firmada
+	fmt.Println("\n📦 Creando archivo ZIP...")
+	zipData, err := createZIP("SETP990000001.xml", signedXML)
+	if err != nil {
+		log.Fatalf("❌ Error creando ZIP: %v", err)
+	}
+	fmt.Printf("✅ ZIP creado (%d bytes)\n", len(zipData))
+
+	// Guardar ZIP (opcional, para debug)
+	if err := os.WriteFile("SETP990000001.zip", zipData, 0644); err != nil {
+		log.Printf("⚠️  No se pudo guardar ZIP: %v", err)
+	}
+
 	// Enviar factura
 	fmt.Println("\n📤 Enviando factura a DIAN...")
 	fileName := "SETP990000001.zip"
-	response, err := soapClient.SendInvoice(fileName, signedXML)
+	response, err := soapClient.SendInvoice(fileName, zipData)
 	if err != nil {
 		log.Fatalf("❌ Error enviando factura: %v", err)
 	}
@@ -312,4 +338,25 @@ func main() {
 	}
 
 	fmt.Println("\n=== PROCESO COMPLETADO ===")
+}
+
+// createZIP crea un archivo ZIP con el contenido especificado
+func createZIP(filename string, content []byte) ([]byte, error) {
+	var buf bytes.Buffer
+	zipWriter := zip.NewWriter(&buf)
+
+	fileWriter, err := zipWriter.Create(filename)
+	if err != nil {
+		return nil, fmt.Errorf("error creando archivo en ZIP: %w", err)
+	}
+
+	if _, err := fileWriter.Write(content); err != nil {
+		return nil, fmt.Errorf("error escribiendo contenido: %w", err)
+	}
+
+	if err := zipWriter.Close(); err != nil {
+		return nil, fmt.Errorf("error cerrando ZIP: %w", err)
+	}
+
+	return buf.Bytes(), nil
 }
